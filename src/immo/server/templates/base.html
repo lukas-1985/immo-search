@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titel %}Immo-Suche{% endblock %} · Immo-Suche</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if pfad != "/login" %}
+<header class="nav"><div class="inner">
+  <a class="marke" href="/">Immo-Suche</a>
+  {% for href, label in [("/", "Übersicht"), ("/angebote", "Angebote"), ("/simulation", "Simulation"), ("/konfiguration", "Konfiguration"), ("/laeufe", "Läufe")] %}
+    <a class="tab {% if (href == '/' and pfad == '/') or (href != '/' and pfad.startswith(href)) or (href == '/angebote' and pfad.startswith('/angebot/')) %}aktiv{% endif %}" href="{{ href }}">{{ label }}</a>
+  {% endfor %}
+  <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="zweit">Abmelden</button></form>
+</div></header>
+{% endif %}
+<main>
+  {% if meldung %}<div class="meldung {% if meldung.art == 'fehler' %}fehler{% endif %}">{{ meldung.text }}</div>{% endif %}
+  {% block inhalt %}{% endblock %}
+</main>
+</body>
+</html>

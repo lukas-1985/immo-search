@@ -5,11 +5,18 @@ description = "Persönliche Meta-Suche für Kapitalanlage-Immobilien (Analyse-Sc
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "argon2-cffi>=25.1.0",
+    "fastapi>=0.146.0",
     "httpx>=0.27",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
     "jsonschema>=4.22",
+    "mcp>=2.3.0",
     "pydantic>=2.7",
     "python-dotenv>=1.0",
+    "python-multipart>=0.0.32",
     "ruamel.yaml>=0.18",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]

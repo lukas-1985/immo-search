@@ -16,6 +16,7 @@ Alle Befehle laufen im Projektordner mit `uv run python scripts/<name>.py`. Schr
 | `profil` (optional) | nur dieses Suchprofil (`config/profiles/<profil>.yaml`), sonst alle aktiven; an jedes Skript als `--profile <profil>` weitergeben |
 | `--mode=run` (Standard) | Daten holen, extrahieren, bewerten, Sofortmeldungen |
 | `--mode=digest` | wie `run`, danach Digest (ab Phase 5) |
+| `--nur-extraktion` | nur Schritte 3–5 und 8: Sync, Regeln und Bewertung erledigt `run.ps1` selbst (unbeaufsichtigter Lauf). Keine anderen Skripte aufrufen. |
 | `--listing=<id> --reextract` | nur dieses Angebot neu auswerten: direkt mit Schritt 3 beginnen und `pending.py --listing <id> --reextract` aufrufen; Schritte 1–2 entfallen |
 
 ## Ablauf

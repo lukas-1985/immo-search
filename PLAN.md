@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 18.10.2026 · Status: Phasen 2–4 (Sync, Extraktion, Scoring & Kaufpreisempfehlung) umgesetzt, Phase 1 (Fredy auf dem Mini-PC) offen.
+> Stand: 18.10.2026 · Status: Phasen 2–4, 7 und 8 umgesetzt (ohne Digest-Teile), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5, 6 und 8b offen.
 
 ---
 
@@ -738,11 +738,14 @@ immo-search/
 
 | Phase | Stand | Nachweis / Anmerkung |
 |---|---|---|
-| 1 | **vorbereitet, pausiert** | Anleitung `docs/SETUP-MINIPC.md`, `docker/fredy/setup.ps1` (Fredy 29.3.0), Diagnose `scripts/check_fredy.py`. Pausiert, weil der Mini-PC eine QEMU-VM ohne verschachtelte Virtualisierung war und Docker Desktop nicht lief. Er wird neu mit Windows 11 direkt auf der Hardware installiert. |
-| 2 | fertig | Tests: Sync idempotent, URL-Normalisierung, `fetch_filter` je Profil, Preisverlauf, entfernt/reaktiviert, fehlerhafter Job markiert nichts als entfernt. Gegen ein echtes Fredy noch **nicht** geprüft. |
-| 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Geprüft nur an 12 **selbst geschriebenen** Testanzeigen (`tests/fixtures/mfh_anzeigen.json`), mit echten Anzeigen erneut messen. |
+| 1 | **fast fertig** | Fredy 29.3.0 läuft auf dem Mini-PC (Windows 11, Docker Desktop). Offene Punkte 1–7 geklärt, Ergebnisse in `docs/SETUP-MINIPC.md`. Immowelt blockt Fredy (Bot-Schutz). Abschluss nach 2–3 Tagen Laufzeit. |
+| 2 | fertig | Tests: Sync idempotent, URL-Normalisierung, `fetch_filter` je Profil, Preisverlauf, entfernt/reaktiviert, fehlerhafter Job markiert nichts als entfernt. Gegen das echte Fredy geprüft (48 Angebote); Duplikate über Portale (`duplicates.py`). |
+| 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Mit 48 echten Anzeigen: Ist-Miete bei 21 von 22 Anzeigen mit Mietangabe erkannt (95 %). |
 | 4 | fertig | 5 Beispiele gegen Handrechnung (`tests/test_finance.py`). Ziel-Cashflow beim empfohlenen Preis exakt, 500 Zufallsfälle. |
-| 5–9 | offen | Nächste Phase nach Abschluss von Phase 1: 5 (Benachrichtigung & Digest). |
+| 5, 6 | offen | `run.ps1` mit unbeaufsichtigtem Claude-Lauf (`--permission-mode dontAsk`, `.claude/run-settings.json`) ist vorgezogen; Aufgabenplanung, Backup, Überwachung fehlen noch. |
+| 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
+| 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
+| 8b, 9 | offen | Objekt-Simulation (Mehrjahresverlauf, Steuern, IRR, Szenarien). |
 
 Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), danach die Doku zur Übergabe.
 

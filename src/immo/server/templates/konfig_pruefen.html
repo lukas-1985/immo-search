@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titel %}Prüfen: {{ datei }}{% endblock %}
+{% block inhalt %}
+<p class="klein"><a href="/konfiguration">← Konfiguration</a></p>
+<h1>{{ herkunft or "Änderung prüfen" }}: {{ datei }}</h1>
+{% if fehler %}
+  <div class="meldung fehler">Die Konfiguration ist so nicht gültig – nichts gespeichert:
+{{ fehler|join("\n") }}</div>
+{% elif not diff %}
+  <div class="meldung">Keine Änderung gegenüber der aktuellen Datei.</div>
+{% else %}
+  <div class="meldung">Prüfung bestanden. Vorschau der Änderungen:</div>
+{% endif %}
+{% if diff %}
+<pre class="diff">{% for z in diff.splitlines() %}<span class="{{ 'kopf' if z.startswith(('---', '+++', '@@')) else 'plus' if z.startswith('+') else 'minus' if z.startswith('-') else '' }}">{{ z }}</span>
+{% endfor %}</pre>
+{% endif %}
+<form method="post" action="/konfiguration/speichern" class="zeile">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="datei" value="{{ datei }}">
+  <textarea name="text" hidden>{{ text }}</textarea>
+  <button {% if fehler or not diff %}disabled{% endif %}>Speichern (mit Backup) und neu bewerten</button>
+</form>
+<h3>Bearbeiten</h3>
+<form method="post" action="/konfiguration/pruefen">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="datei" value="{{ datei }}">
+  <textarea name="text" class="yaml" spellcheck="false">{{ text }}</textarea>
+  <button class="zweit">Erneut prüfen</button>
+</form>
+{% endblock %}

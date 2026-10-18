@@ -2,7 +2,7 @@
 fredy:
   base_url: "http://localhost:9998"
   access: api            # api | sqlite
-  sqlite_path: "D:/docker/fredy/db/listings.db"   # nur für access: sqlite (read-only)
+  sqlite_path: "C:/E/docker/fredy/db/listings.db"   # nur für access: sqlite (read-only)
   page_size: 200
   timeout_s: 30
 

@@ -1,0 +1,22 @@
+{
+  "$comment": "Rechte des unbeaufsichtigten Claude-Laufs (run.ps1, --permission-mode dontAsk): alles, was hier nicht erlaubt ist, wird abgelehnt.",
+  "permissions": {
+    "allow": [
+      "Skill(immo-analyse)",
+      "Read(./**)",
+      "Glob",
+      "Grep",
+      "Bash(uv run python scripts/pending.py*)",
+      "Bash(uv run python scripts/save.py*)",
+      "PowerShell(uv run python scripts/pending.py*)",
+      "PowerShell(uv run python scripts/save.py*)",
+      "Edit(./data/extraction/**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}

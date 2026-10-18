@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titel %}Übersicht{% endblock %}
+{% block inhalt %}
+<h1>Übersicht</h1>
+<div class="raster">
+  <div class="kachel"><div class="zahl">{{ u.neu_heute }}</div><div class="label">neu heute</div></div>
+  <div class="kachel"><div class="zahl">{{ u.neu_woche }}</div><div class="label">neu in 7 Tagen</div></div>
+  <div class="kachel"><div class="zahl">{{ u.top_score|zahl(0) if u.top_score is not none else "–" }}</div><div class="label">Top-Score</div></div>
+  <div class="kachel"><div class="zahl">{{ u.preissenkungen_woche }}</div><div class="label">Preissenkungen (7 Tage)</div></div>
+  <div class="kachel"><div class="zahl">{{ u.aktiv }}</div><div class="label">aktive Angebote</div></div>
+</div>
+
+<div class="zwei" style="margin-top:14px">
+  <div class="karte">
+    <h3 style="margin-top:0">Portale</h3>
+    <table>
+      <tr><th>Portal</th><th class="r">aktiv</th><th class="r">gesamt</th><th>letztes neues</th></tr>
+      {% for p in u.portale %}
+      <tr><td>{{ p.portal }}</td><td class="r">{{ p.aktiv }}</td><td class="r">{{ p.angebote }}</td>
+        <td class="{{ 'warn' if (p.tage_seit_neuem or 0) > 3 else '' }}">{{ p.letztes_neues|datum }} ({{ p.tage_seit_neuem }} T)</td></tr>
+      {% else %}<tr><td colspan="4" class="klein">Noch keine Daten.</td></tr>{% endfor %}
+    </table>
+    <p class="klein">Immowelt liefert derzeit nichts (Bot-Schutz, siehe Anleitung).</p>
+  </div>
+  <div class="karte">
+    <h3 style="margin-top:0">Vorgänge</h3>
+    {% if u.status %}
+      <div class="zeile">{% for s, n in u.status.items() %}<a class="pill" href="/angebote?status={{ s }}">{{ s }}: {{ n }}</a>{% endfor %}</div>
+    {% else %}<p class="klein">Noch kein Angebot mit Status. Status setzt du in der Detailansicht.</p>{% endif %}
+    <h3>Letzte Läufe</h3>
+    <table>
+      {% for j in jobs_ %}
+      <tr><td><a href="/laeufe">Job {{ j.id }}</a> {{ j.typ }}</td><td><span class="pill {{ 'gut' if j.status == 'fertig' else 'schlecht' if j.status == 'fehler' else 'warn' }}">{{ j.status }}</span></td><td class="klein">{{ j.start|datum(true) }}</td></tr>
+      {% endfor %}
+      {% for r in u.laeufe[:4] %}
+      <tr><td class="klein">{{ r.schritt }} {{ r.profile_id or "" }}</td><td>{% if r.fehler %}<span class="pill schlecht">Fehler</span>{% else %}<span class="pill gut">ok</span>{% endif %}</td><td class="klein">{{ r.start|datum(true) }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+{% for pid, items in u.top.items() %}
+  <h2>Top 10 · {{ config.profiles[pid].name }} <a class="klein" href="/angebote?profil={{ pid }}">alle anzeigen</a></h2>
+  {% set sortlink = none %}
+  {% include "_angebote_tabelle.html" %}
+{% endfor %}
+{% endblock %}

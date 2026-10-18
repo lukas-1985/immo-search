@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block titel %}{{ d.listing.titel or "Angebot" }}{% endblock %}
+{% block inhalt %}
+{% set l = d.listing %}
+<p class="klein"><a href="/angebote">← Angebote</a> · Angebot {{ l.id }} · gesehen seit {{ l.first_seen|datum }} ({{ d.standzeit_tage }} Tage)
+  {% if l.status_portal == "entfernt" %} · <span class="pill">vom Portal entfernt</span>{% endif %}</p>
+<h1>{{ l.titel or "(ohne Titel)" }}</h1>
+<p class="zeile">{{ l.adresse or ((l.plz or "") ~ " " ~ (l.ort or "")) }}
+  {% for p in d.portale %}<a class="pill" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.portal }}{% if p.listing_id != l.id %} ↗{% endif %}</a>{% endfor %}
+  <span class="pill">Status: {{ d.status }}</span></p>
+
+{% if d.bewertungen|length > 1 %}<p class="zeile">Profil: {% for pid in d.bewertungen %}<a class="pill {{ 'gut' if pid == aktiv else '' }}" href="?profil={{ pid }}">{{ pid }}</a>{% endfor %}</p>{% endif %}
+
+{% if b %}
+{% set f = b.details.finanzen or {} %}
+{% set ke = f.kaufpreisempfehlung or {} %}
+<div class="karte">
+  <div class="kopf-preis">
+    <div><div class="klein">Angebotspreis</div><div class="gross">{{ l.preis|eur }}</div></div>
+    <div><div class="klein">Kaufpreisempfehlung (Cashflow {{ f.annahmen.ziel_cashflow_monat|eur if f.annahmen else "0 €" }}/Monat)</div>
+      <div class="gross {{ 'gut' if (b.preisabstand or 0) <= 0 else 'schlecht' }}">{{ b.kaufpreisempfehlung|eur }}</div></div>
+    {% if b.preisabstand is not none %}<div><div class="klein">Abstand</div><div class="gross {{ 'gut' if b.preisabstand <= 0 else 'schlecht' }}">{{ (l.preis - b.kaufpreisempfehlung)|eur }} · {{ b.preisabstand|pct }}</div></div>{% endif %}
+    <div><div class="klein">Score</div><div class="gross">{{ b.score|zahl(1) if b.score is not none else "–" }}</div></div>
+  </div>
+  <p class="klein">
+    {% if ke.status and ke.status != "ok" %}<span class="pill warn">{{ ke.status }}</span>{% endif %}
+    Qualität: {{ ke.qualitaet or "–" }}
+    {% if ke.zins_minus %} · Spanne bei Zins ±0,5 Pp: {{ ke.zins_plus|eur }} – {{ ke.zins_minus|eur }}{% endif %}
+    {% if b.ausgeschlossen %} · <span class="pill schlecht">ausgeschlossen: {{ b.ausschlussgrund }}</span>{% endif %}
+  </p>
+  {% for h in b.details.hinweise or [] %}<div class="klein warn">• {{ h }}</div>{% endfor %}
+  {% if f.annahmen %}
+  <details><summary>Rechenweg und Annahmen</summary>
+    {% set a = f.annahmen %}
+    <div class="zwei">
+      <dl class="daten">
+        <dt>Jahresnettokaltmiete</dt><dd>{{ a.miete_ist|eur }} ({{ a.miete_qualitaet or "fehlt" }})</dd>
+        <dt>Bewirtschaftung</dt><dd>{{ f.bewirtschaftung|eur }} ({{ a.bewirtschaftung_quote|pct(0) }} + {{ a.instandhaltung_eur_m2_jahr|eur }}/m²)</dd>
+        <dt>Nebenkosten</dt><dd>{{ f.nebenkosten|eur }} (GrESt {{ a.grunderwerbsteuer|pct }}, Notar {{ a.notar_grundbuch|pct }}, Makler {{ a.makler|pct(2) }} – {{ a.makler_quelle }})</dd>
+        <dt>Gesamtinvestition</dt><dd>{{ f.gesamtinvestition|eur }}</dd>
+        <dt>Eigenkapital</dt><dd>{{ "= Kaufnebenkosten" if a.eigenkapital == "nebenkosten" else a.eigenkapital|eur }}</dd>
+      </dl>
+      <dl class="daten">
+        <dt>Darlehen</dt><dd>{{ f.darlehen|eur }}</dd>
+        <dt>Zins / Tilgung</dt><dd>{{ a.zins|pct(2) }} / {{ a.tilgung|pct(2) }}{% if not a.tilgung_einrechnen %} (Tilgung nicht eingerechnet){% endif %}</dd>
+        <dt>Rate</dt><dd>{{ f.rate_monat|eur }} / Monat</dd>
+        <dt>Cashflow</dt><dd class="{{ 'gut' if (f.cashflow_monat or 0) >= 0 else 'schlecht' }}">{{ f.cashflow_monat|eur }} / Monat</dd>
+        <dt>Bruttorendite · Faktor</dt><dd>{{ f.bruttorendite|pct(2) }} · {{ f.faktor|zahl(1) }}</dd>
+        <dt>Nettoanfangsrendite</dt><dd>{{ f.nettoanfangsrendite|pct(2) }}</dd>
+      </dl>
+    </div>
+    <p class="klein">Empfehlung P* = ((Miete − Bewirtschaftung − 12·Ziel-Cashflow) / (Zins + Tilgung) + EK − Sanierung) / (1 + Nebenkostenquote);
+      bei EK = Nebenkosten: P* = (Miete − Bewirtschaftung − 12·Ziel) / (Zins + Tilgung) − Sanierung.</p>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="zwei">
+  <div>
+    {% if d.bilder %}<div class="karte"><div class="bilder">{% for img in d.bilder[:12] %}<img src="{{ img }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endfor %}</div></div>{% endif %}
+    <div class="karte">
+      <h3 style="margin-top:0">Stammdaten</h3>
+      <dl class="daten">
+        <dt>Preis</dt><dd>{{ l.preis|eur }}</dd><dt>Wohnfläche</dt><dd>{{ l.flaeche|zahl }} m²</dd>
+        <dt>Zimmer</dt><dd>{{ l.zimmer|zahl(1) if l.zimmer else "–" }}</dd><dt>Baujahr</dt><dd>{{ l.baujahr or "–" }}</dd>
+        <dt>Energieklasse</dt><dd>{{ l.energieklasse or "–" }}</dd><dt>Profile</dt><dd>{{ d.profile|join(", ") }}</dd>
+      </dl>
+    </div>
+    {% if b %}
+    <div class="karte">
+      <h3 style="margin-top:0">Score-Aufschlüsselung</h3>
+      <table>
+        <tr><th>KPI</th><th class="r">Wert</th><th>Qualität</th><th class="r">Punkte</th><th class="r">Gewicht</th></tr>
+        {% for name, k in (b.details.kpis or {}).items() %}
+        <tr><td>{{ name }}</td><td class="r">{{ k.wert|pct(2) if name in ("bruttorendite", "nettoanfangsrendite", "preisabstand", "mietpotenzial") else k.wert|zahl(1) }}</td>
+          <td>{{ k.qualitaet or "fehlt" }}</td><td class="r">{{ k.punkte|zahl(1) if k.punkte is not none else "–" }}</td><td class="r">{{ k.gewicht }}</td></tr>
+        {% endfor %}
+      </table>
+      <h3>Ausschlusskriterien</h3>
+      <table>
+        {% for h in b.details.hard_filter or [] %}
+        <tr><td>{{ h.feld }} {{ h.op }} {{ h.soll|wert_text }}</td><td>{{ h.ist|wert_text }}</td>
+          <td><span class="pill {{ 'gut' if h.ergebnis == 'ok' else 'schlecht' if h.ergebnis == 'verletzt' else 'warn' }}">{{ h.ergebnis }}</span></td></tr>
+        {% endfor %}
+      </table>
+      {% if b.details.unvollstaendig %}<p class="klein warn">Fehlt oder geschätzt: {{ b.details.unvollstaendig|join(", ") }}</p>{% endif %}
+    </div>
+    {% endif %}
+    <div class="karte">
+      <h3 style="margin-top:0">Preisverlauf</h3>
+      {{ preis_svg(d.preisverlauf, b.kaufpreisempfehlung if b else none) }}
+    </div>
+  </div>
+
+  <div>
+    <div class="karte">
+      <h3 style="margin-top:0">Status</h3>
+      <form method="post" action="/angebot/{{ l.id }}/status" class="zeile">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <select name="status">{% for s in status_werte %}<option {% if s == d.status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        <input type="text" name="notiz" placeholder="Notiz zum Wechsel (optional)" style="flex:1">
+        <button>Setzen</button>
+      </form>
+      {% if d.status_verlauf %}
+      <details><summary>Verlauf ({{ d.status_verlauf|length }})</summary>
+        <table>{% for h in d.status_verlauf %}<tr><td class="klein">{{ h.zeitpunkt|datum(true) }}</td><td>{{ h.status_alt or "neu" }} → <b>{{ h.status_neu }}</b></td><td class="klein">{{ h.quelle }}{% if h.notiz %} · {{ h.notiz }}{% endif %}</td></tr>{% endfor %}</table>
+      </details>
+      {% endif %}
+    </div>
+    <div class="karte" id="notizen">
+      <h3 style="margin-top:0">Notizen</h3>
+      <form method="post" action="/angebot/{{ l.id }}/notiz">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <textarea name="text" rows="2" placeholder="Notiz hinzufügen"></textarea>
+        <button>Speichern</button>
+      </form>
+      {% for n in d.notizen %}<p><span class="klein">{{ n.created_at|datum(true) }} · {{ n.quelle }}</span><br>{{ n.text }}</p>{% endfor %}
+    </div>
+    <div class="karte">
+      <h3 style="margin-top:0">Extrahierte Merkmale</h3>
+      <table>
+        <tr><th>Merkmal</th><th>Wert</th><th>Quelle</th></tr>
+        {% for name, m in d.merkmale.items()|sort %}
+        <tr><td>{{ name }}</td>
+          <td>{% if name == "risiken" %}{% for r in m.wert %}<div class="schlecht">• {{ r }}</div>{% endfor %}
+              {% elif name == "provision" %}{{ m.wert|pct(2) }}{% elif name.startswith("jahresnettokaltmiete") %}{{ m.wert|eur }}
+              {% else %}{{ m.wert|wert_text }}{% endif %}
+              {% if m.rechenweg %}<div class="klein">{{ m.rechenweg }}</div>{% endif %}
+              {% if m.belegstelle %}<div class="klein" title="Belegstelle">„{{ m.belegstelle }}“</div>{% endif %}</td>
+          <td class="klein">{{ m.quelle }}{% if m.konfidenz %}<br>{{ m.konfidenz }}{% endif %}</td></tr>
+        {% else %}<tr><td colspan="3" class="klein">Noch nicht ausgewertet.</td></tr>{% endfor %}
+      </table>
+      <form method="post" action="/angebot/{{ l.id }}/neu-auswerten" class="zeile" style="margin-top:8px">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="zweit" {% if offener_job %}disabled{% endif %}>Neu auswerten (Claude)</button>
+        {% if offener_job %}<span class="klein">Job {{ offener_job.id }}: {{ offener_job.status }}</span>{% endif %}
+        {% if d.extraktion %}<span class="klein">zuletzt {{ d.extraktion.updated_at|datum(true) }} ({{ d.extraktion.status }})</span>{% endif %}
+      </form>
+    </div>
+    <div class="karte">
+      <h3 style="margin-top:0">Anzeigentext <span class="klein">(Belegstellen markiert)</span></h3>
+      <div class="text-anzeige">{{ hervorheben(d.beschreibung, belege) }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

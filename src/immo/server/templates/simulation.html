@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titel %}Ranking-Simulation{% endblock %}
+{% block inhalt %}
+<h1>Was-wäre-wenn: Ranking-Simulation</h1>
+<p class="klein">Werte ändern und „Neu rechnen“: Das Ranking wird mit derselben Bewertungslogik im Speicher neu berechnet. Gespeichert wird nichts,
+  außer du übernimmst die Werte ins Profil (mit Prüfung, Vorschau und Backup).</p>
+{% set w = werte %}
+<form method="post" action="/simulation" class="karte">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="zeile"><label>Profil <select name="profil" onchange="location='/simulation?profil='+this.value">
+    {% for pr in profile %}<option value="{{ pr.id }}" {% if pr.id == profil.id %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select></label></div>
+  <div class="zwei">
+    <div>
+      <h3>KPIs (Gewicht, Normalisierung)</h3>
+      <table>
+        <tr><th>KPI</th><th>Gewicht</th><th>min (0 Pkt.)</th><th>max (100 Pkt.)</th></tr>
+        {% for kpi, c in profil.scoring.kpis.items() %}
+        <tr><td>{{ kpi }}</td>
+          <td><input type="number" step="0.1" class="schmal" name="gew_{{ kpi }}" value="{{ w.get('gew_' ~ kpi, c.weight) }}"></td>
+          <td><input type="number" step="any" class="schmal" name="nmin_{{ kpi }}" value="{{ w.get('nmin_' ~ kpi, c.normalize.min) }}"></td>
+          <td><input type="number" step="any" class="schmal" name="nmax_{{ kpi }}" value="{{ w.get('nmax_' ~ kpi, c.normalize.max) }}"></td></tr>
+        {% endfor %}
+      </table>
+      <h3>Ausschlusskriterien</h3>
+      <table>
+        {% for r in profil.hard_filter %}
+        <tr><td>{{ r.field }} {{ r.op }}</td>
+          <td><input type="text" class="schmal" name="hf_{{ loop.index0 }}" value="{{ w.get('hf_' ~ loop.index0, r.value|lower if r.value is sameas true or r.value is sameas false else r.value) }}"></td>
+          <td class="klein">fehlt → {{ r.on_missing }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div>
+      <h3>Finanzannahmen <span class="klein">(Profil + Standardwerte)</span></h3>
+      <table>
+        {% for feld in finanz_felder %}
+        <tr><td>{{ feld }}</td><td><input type="text" style="width:130px" name="fin_{{ feld }}" value="{{ w.get('fin_' ~ feld, finanzen[feld] if finanzen[feld] is not none else '') }}"></td></tr>
+        {% endfor %}
+        <tr><td>Ziel-Cashflow €/Monat</td><td><input type="number" step="10" style="width:130px" name="ziel_cashflow_monat" value="{{ w.get('ziel_cashflow_monat', profil.kaufpreisempfehlung.ziel_cashflow_monat) }}"></td></tr>
+        <tr><td>Tilgung einrechnen</td><td><input type="checkbox" name="tilgung_einrechnen" value="1" {% if tilgung_an %}checked{% endif %}></td></tr>
+      </table>
+      <p class="klein">Anteile als Dezimalzahl (Zins 0.038 = 3,8 %). Eigenkapital: Betrag oder „nebenkosten“.</p>
+    </div>
+  </div>
+  <div class="zeile">
+    <button name="aktion" value="rechnen">Neu rechnen</button>
+    <button name="aktion" value="uebernehmen" class="zweit">Als Profil übernehmen …</button>
+    <a class="knopf zweit" href="/simulation?profil={{ profil.id }}">Zurücksetzen</a>
+  </div>
+</form>
+
+{% if fehler %}<div class="meldung fehler">{{ fehler }}</div>{% endif %}
+{% if ergebnis %}
+<h2>Ergebnis: {{ ergebnis.anzahl_neu }} Objekte im Ranking (vorher {{ ergebnis.anzahl_alt }})</h2>
+{% if aenderungen %}<p class="klein mono">Änderungen: {{ aenderungen|tojson }}</p>{% else %}<p class="klein">Keine Änderung – Ranking identisch mit dem gespeicherten.</p>{% endif %}
+<div class="tabelle-wrap"><table>
+  <tr><th class="r">Platz</th><th class="r">±</th><th>Angebot</th><th class="r">Score alt → neu</th><th class="r">Preis</th><th class="r">Empfehlung alt → neu</th><th class="r">Abstand</th></tr>
+  {% for r in ergebnis.ranking %}
+  <tr><td class="r">{{ r.rang_neu }}</td>
+    <td class="r">{% if r.veraenderung is none %}<span class="pill gut">neu</span>{% elif r.veraenderung > 0 %}<span class="gut">▲{{ r.veraenderung }}</span>{% elif r.veraenderung < 0 %}<span class="schlecht">▼{{ -r.veraenderung }}</span>{% else %}·{% endif %}</td>
+    <td><a href="/angebot/{{ r.id }}">{{ r.titel }}</a> <span class="klein">{{ r.ort or "" }}</span></td>
+    <td class="r">{{ r.score_alt|zahl(1) if r.score_alt is not none else "–" }} → <b>{{ r.score_neu|zahl(1) }}</b></td>
+    <td class="r">{{ r.preis|eur }}</td>
+    <td class="r">{{ r.kpe_alt|eur }} → <b>{{ r.kpe_neu|eur }}</b></td>
+    <td class="r">{% if r.preisabstand_neu is not none %}<span class="pill {{ 'gut' if r.preisabstand_neu <= 0 else 'schlecht' }}">{{ r.preisabstand_neu|pct(0) }}</span>{% endif %}</td></tr>
+  {% endfor %}
+</table></div>
+{% if ergebnis.ausgeschieden %}
+<h3>Herausgefallen</h3>
+<ul>{% for r in ergebnis.ausgeschieden %}<li>vorher Platz {{ r.rang_alt }}: <a href="/angebot/{{ r.id }}">{{ r.titel }}</a></li>{% endfor %}</ul>
+{% endif %}
+<p class="klein">Ausschlussgründe: {{ ergebnis.ausschlussgruende|tojson }}</p>
+{% endif %}
+{% endblock %}

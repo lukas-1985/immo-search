@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titel %}Anmelden{% endblock %}
+{% block inhalt %}
+<div class="karte login">
+  <h1>Immo-Suche</h1>
+  {% if not eingerichtet %}
+    <p class="warn">Noch kein Passwort gesetzt. Auf dem Mini-PC ausführen:<br>
+    <code>uv run python scripts/set_password.py</code></p>
+  {% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="weiter" value="{{ weiter }}">
+    <p><input type="password" name="passwort" placeholder="Passwort" autofocus required style="width:100%"></p>
+    <button>Anmelden</button>
+  </form>
+</div>
+{% endblock %}

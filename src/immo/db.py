@@ -174,11 +174,15 @@ def now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def connect(path: Path | str) -> sqlite3.Connection:
-    """Öffnet die DB (legt sie samt Schema bei Bedarf an)."""
+def connect(path: Path | str, check_same_thread: bool = True) -> sqlite3.Connection:
+    """Öffnet die DB (legt sie samt Schema bei Bedarf an).
+
+    `check_same_thread=False` nur, wenn eine Verbindung garantiert nicht gleichzeitig genutzt wird
+    (Server: eine Verbindung je Anfrage, die FastAPI aber über Threads weiterreichen kann).
+    """
     if str(path) != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=30)
+    conn = sqlite3.connect(path, timeout=30, check_same_thread=check_same_thread)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA busy_timeout = 30000")

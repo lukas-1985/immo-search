@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titel %}{{ datei }}{% endblock %}
+{% block inhalt %}
+<p class="klein"><a href="/konfiguration">← Konfiguration</a></p>
+<h1>{{ datei }}</h1>
+<form method="post" action="/konfiguration/pruefen">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="datei" value="{{ datei }}">
+  <textarea name="text" class="yaml" spellcheck="false">{{ text }}</textarea>
+  <div class="zeile" style="margin-top:8px"><button>Prüfen und Änderungen anzeigen</button>
+    <span class="klein">Es wird noch nichts gespeichert.</span></div>
+</form>
+{% endblock %}

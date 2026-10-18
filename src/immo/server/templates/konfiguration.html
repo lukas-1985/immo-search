@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titel %}Konfiguration{% endblock %}
+{% block inhalt %}
+<h1>Konfiguration</h1>
+<div class="zwei">
+  <div class="karte">
+    <h3 style="margin-top:0">Dateien</h3>
+    <table>
+      {% for f in dateien %}
+      {% set pid = f[9:-5] if f.startswith("profiles/") else none %}
+      {% set pr = config.profiles.get(pid) if pid else none %}
+      <tr><td><a href="/konfiguration/bearbeiten?datei={{ f }}">{{ f }}</a>
+          {% if pr %}<div class="klein">{{ pr.name }}</div>{% endif %}</td>
+        <td>{% if pr %}<span class="pill {{ 'gut' if pr.active else '' }}">{{ "aktiv" if pr.active else "inaktiv" }}</span>{% endif %}</td>
+        <td>{% if pr %}
+          <form method="post" action="/konfiguration/profil/{{ pid }}/aktiv" style="display:inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="aktiv" value="{{ '0' if pr.active else '1' }}">
+            <button class="link">{{ "deaktivieren" if pr.active else "aktivieren" }}</button></form>
+          <details style="display:inline-block"><summary>kopieren</summary>
+            <form method="post" action="/konfiguration/profil/{{ pid }}/kopieren" class="zeile">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="text" name="neue_id" placeholder="neue-id" required pattern="[a-z0-9][a-z0-9-]*" class="schmal">
+              <input type="text" name="name" placeholder="Name">
+              <button class="zweit">anlegen</button></form>
+          </details>
+        {% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    <p class="klein">Speichern: Prüfung → Vorschau der Änderungen → Backup nach config/.history → Schreiben → Protokoll → automatische Neuberechnung der Scores.</p>
+  </div>
+  <div class="karte">
+    <h3 style="margin-top:0">Letzte Änderungen</h3>
+    <table>
+      {% for a in aenderungen %}<tr><td class="klein">{{ a.zeitpunkt|datum(true) }}</td><td>{{ a.datei }}</td><td><a href="/konfiguration/aenderung/{{ a.id }}" target="_blank">Diff</a></td></tr>
+      {% else %}<tr><td class="klein">Noch keine Änderung über die Oberfläche.</td></tr>{% endfor %}
+    </table>
+    <h3>Backups</h3>
+    <table>
+      {% for b in backups %}<tr><td class="klein">{{ b.zeitpunkt[:8] }} {{ b.zeitpunkt[9:15] }}</td><td>{{ b.datei }}</td><td><a href="/konfiguration/backup/{{ b.name }}">ansehen / wiederherstellen</a></td></tr>
+      {% else %}<tr><td class="klein">Keine Backups.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

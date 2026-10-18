@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titel %}Läufe{% endblock %}
+{% block inhalt %}
+<h1>Läufe</h1>
+<div class="karte">
+  <form method="post" action="/laeufe/starten" class="zeile">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="typ" value="lauf">
+    <select name="profil"><option value="">alle aktiven Profile</option>{% for pr in profile if pr.active %}<option value="{{ pr.id }}">{{ pr.name }}</option>{% endfor %}</select>
+    <button>Kompletten Lauf starten</button>
+    <span class="klein">Sync → Regeln → Claude-Extraktion → Bewertung (run.ps1)</span>
+  </form>
+  <form method="post" action="/laeufe/starten" class="zeile" style="margin-top:8px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="typ" value="bewerten">
+    <button class="zweit">Nur neu bewerten</button>
+    <span class="klein">Digest senden folgt mit Phase 5.</span>
+  </form>
+</div>
+<h2>Jobs</h2>
+<div class="tabelle-wrap"><table>
+  <tr><th>Job</th><th>Typ</th><th>Parameter</th><th>Auslöser</th><th>Status</th><th>Start</th><th class="r">Dauer</th><th>Log</th></tr>
+  {% for j in jobs_ %}
+  <tr><td>{{ j.id }}</td><td>{{ j.typ }}</td><td class="mono">{{ j.parameter|tojson if j.parameter else "" }}</td><td>{{ j.ausgeloest_von }}</td>
+    <td><span class="pill {{ 'gut' if j.status == 'fertig' else 'schlecht' if j.status == 'fehler' else 'warn' }}">{{ j.status }}</span></td>
+    <td class="klein">{{ j.start|datum(true) }}</td>
+    <td class="r klein">{% if j.dauer_s is not none %}{{ j.dauer_s // 60 }}:{{ "%02d"|format(j.dauer_s % 60) }} min{% endif %}</td>
+    <td>{% if j.log_pfad %}<a href="/laeufe/{{ j.id }}/log" target="_blank">ansehen</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="klein">Noch keine Jobs.</td></tr>{% endfor %}
+</table></div>
+<h2>Schritte (run_log)</h2>
+<div class="tabelle-wrap"><table>
+  <tr><th>Schritt</th><th>Profil</th><th>Start</th><th>Kennzahlen</th><th>Fehler</th></tr>
+  {% for r in run_log %}
+  <tr><td>{{ r.schritt }}</td><td>{{ r.profile_id or "" }}</td><td class="klein">{{ r.start|datum(true) }}</td>
+    <td class="klein mono">{% for k, v in r.zahlen.items() if v not in (0, {}, [], none) and k not in ("profile_id",) %}{{ k }}={{ v if v is not mapping else v|tojson }} {% endfor %}</td>
+    <td class="schlecht klein">{{ r.fehler or "" }}</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

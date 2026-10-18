@@ -1,0 +1,44 @@
+{# Erwartet: items (aus queries.liste), optional sortlink(feld) #}
+{% macro kopf(feld, label, klasse="") %}
+  {% if sortlink %}<th class="{{ klasse }}"><a href="{{ sortlink(feld) }}">{{ label }}{% if sortierung == feld %} {{ "▼" if absteigend else "▲" }}{% endif %}</a></th>
+  {% else %}<th class="{{ klasse }}">{{ label }}</th>{% endif %}
+{% endmacro %}
+<div class="tabelle-wrap"><table>
+  <thead><tr>
+    {{ kopf("score", "Score", "r") }}
+    <th>Angebot</th>
+    {{ kopf("bruttorendite", "Rendite", "r") }}
+    {{ kopf("preis", "Preis", "r") }}
+    <th class="r">Empfehlung</th>
+    {{ kopf("preisabstand", "Abstand", "r") }}
+    {{ kopf("einheiten", "WE", "r") }}
+    <th>Portale</th>
+    {{ kopf("standzeit", "Standzeit", "r") }}
+    <th>Status</th>
+  </tr></thead>
+  <tbody>
+  {% for i in items %}
+    <tr>
+      <td class="r"><b>{{ i.score|zahl(0) if i.score is not none else "–" }}</b>
+        {% if i.score is not none %}<div class="balken"><span style="width: {{ [i.score, 100]|min }}%"></span></div>{% endif %}</td>
+      <td><a href="/angebot/{{ i.id }}">{{ i.titel or "(ohne Titel)" }}</a>
+        <div class="klein">{{ i.plz or "" }} {{ i.ort or "" }}{% if i.flaeche %} · {{ i.flaeche|zahl }} m²{% endif %}
+          {% if i.ausgeschlossen %} · <span class="pill schlecht" title="{{ i.ausschlussgrund }}">ausgeschlossen</span>{% endif %}
+          {% if i.unvollstaendig %} · <span class="pill warn" title="fehlt/geschätzt: {{ i.unvollstaendig|join(', ') }}">unvollständig</span>{% endif %}
+          {% if i.status_portal == "entfernt" %} · <span class="pill">entfernt</span>{% endif %}
+        </div></td>
+      <td class="r">{{ i.bruttorendite|pct }}{% if i.rendite_qualitaet == "geschätzt" %}<div class="klein">geschätzt</div>{% endif %}</td>
+      <td class="r">{{ i.preis|eur }}
+        {% if i.preisaenderung %}<div class="klein {{ 'gut' if i.preisaenderung < 0 else 'schlecht' }}">{{ i.preisaenderung|pct }}</div>{% endif %}</td>
+      <td class="r">{{ i.kaufpreisempfehlung|eur }}</td>
+      <td class="r">{% if i.preisabstand is not none %}<span class="pill {{ 'gut' if i.preisabstand <= 0 else 'schlecht' }}">{{ i.preisabstand|pct(0) }}</span>{% else %}–{% endif %}</td>
+      <td class="r">{{ i.einheiten if i.einheiten is not none else "–" }}</td>
+      <td>{% for p in i.portale %}<a class="pill" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.portal }}</a> {% endfor %}</td>
+      <td class="r">{{ i.standzeit_tage }} T</td>
+      <td><span class="pill">{{ i.status }}</span></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="10" class="klein">Keine Angebote.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
