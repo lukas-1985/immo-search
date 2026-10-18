@@ -44,6 +44,21 @@ def test_conflicting_values_give_no_rule_value():
     assert "jahresnettokaltmiete_ist" not in extract_rules(None, text, SCHEMA)
 
 
+@pytest.mark.parametrize("titel, text", [
+    # echte Anzeigen KL, 18.10.2026: Planung bzw. nur der vermietete Teil, nicht der Bestand
+    ("3-Familienhaus mit genehmigtem Neubaukonzept für 7 Wohneinheiten", "Baugenehmigung für ein Mehrfamilienhaus"),
+    (None, "Ist-Miete: 5 Wohnungen vermietet"),
+])
+def test_wohneinheiten_lieber_nichts_als_falsch(titel, text):
+    assert "wohneinheiten" not in extract_rules(titel, text, SCHEMA)
+
+
+def test_wohneinheiten_bestand_statt_vermieteter_teil():
+    titel = "Mehrfamilienhaus Kaiserslautern: 8 Whg. (3 frei), 5 Garagen"
+    text = "Ist-Jahresmiete heute: 33.702 € (5 Wohnungen, 4 Garagen vermietet)"
+    assert extract_rules(titel, text, SCHEMA)["wohneinheiten"]["wert"] == 8
+
+
 def test_belegstelle_tolerates_whitespace_quotes_and_ellipsis():
     text = "Das Haus „Lindenhof“ hat\n6   Wohnungen. Im Keller ist es feucht."
     assert belegstelle_found('Das Haus "Lindenhof" hat 6 Wohnungen', text)

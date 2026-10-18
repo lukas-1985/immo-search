@@ -113,16 +113,17 @@ def _count(text: str, label_re: str, prose_re: str | None) -> Item | None:
     return None
 
 
-# Zahl vor „Wohnungen“ usw., aber nicht „davon 2 Wohnungen leer“ / „derzeit 2 Wohnungen frei“
-_NICHT_DAVOR = r"(?<!davon )(?<!derzeit )(?<!noch )(?<!aktuell )(?<!sind )"
-_NICHT_DANACH = r"(?!\w*\s+(?:leer|frei|unvermietet|nicht vermietet|stehen leer|sind leer))"
+# Zahl vor „Wohnungen“ usw., aber nicht „davon 2 Wohnungen leer“ / „derzeit 2 Wohnungen frei“,
+# nicht „Neubaukonzept für 7 Wohneinheiten“ (Planung) und nicht „5 Wohnungen, 4 Garagen vermietet“ (nur der vermietete Teil)
+_NICHT_DAVOR = r"(?<!davon )(?<!derzeit )(?<!noch )(?<!aktuell )(?<!sind )(?<!für )"
+_NICHT_DANACH = r"(?!\w*\s+(?:leer|frei|unvermietet|nicht vermietet|stehen leer|sind leer))(?![^.;\n()]{0,25}\bvermietet\b)"
 
 
 def _wohneinheiten(text: str) -> Item | None:
     return _count(
         text,
         r"(?:Anzahl\s+(?:der\s+)?Wohneinheiten|Wohneinheiten(?:\s+gesamt)?)\s*:\s*(\d{1,3})\b",
-        rf"{_NICHT_DAVOR}\b(\d{{1,3}})\s*-?\s*(?:Wohneinheiten|Wohnungen|WE\b|Parteien){_NICHT_DANACH}",
+        rf"{_NICHT_DAVOR}\b(\d{{1,3}})\s*-?\s*(?:Wohneinheiten|Wohnungen|WE\b|Whg\b\.?|Parteien){_NICHT_DANACH}",
     )
 
 

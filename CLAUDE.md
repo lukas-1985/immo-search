@@ -6,14 +6,19 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 ## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
 
-- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 96 Tests grün.
+- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 99 Tests grün.
+- **Erster echter Lauf (18.10.2026):** 48 Angebote in `data/immo.db` (sync zweimal, 2. Lauf neu = 0), Regeln + Claude-Extraktion für alle 48 (0 abgelehnt), `score.py` gelaufen. Extraktionsdateien unter `data/extraction/`.
 - **Phase 1 fast fertig:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy`. Fredy 29.3.0 läuft unter http://localhost:9998. Passwort steht in `.env`.
   - Aktives Profil `mfh-kl` (Kaiserslautern, 5 km, 300 000–2 000 000 €, RP, EK = nur Nebenkosten, Miete 9 €/m²). Fredy-Jobs „MFH KL – IS24/Immowelt/Kleinanzeigen“, Analytics aus, Arbeitszeit 07–22 Uhr, Intervall 60 Min., `provider_details` für alle drei Portale.
   - Ergebnisse der Diagnose: Tabelle in [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitt 8.
 - **Nächster Schritt:**
-  1. Immowelt beobachten: Beim ersten Lauf meldete Fredy „detected as a bot“ (HTTP 403).
-  2. Nach 2–3 Tagen `check_fredy.py` und zweimal `sync.py` ausführen (Anleitung, Abschnitt 7). Danach die Extraktion an echten Anzeigen messen (Ist-Miete ≥ 80 %).
-  3. Offen für den Nutzer: Windows-Einstellungen aus Abschnitt 1 der Anleitung (Standby, Autologon, Sperre) und „Start Docker Desktop when you sign in“.
+  1. Immowelt beobachten: Beim ersten Lauf meldete Fredy „detected as a bot“ (HTTP 403). Der Nutzer will unabhängig davon weitermachen.
+  2. Erkenntnisse aus dem ersten Lauf umsetzen (mit dem Nutzer abstimmen):
+     - **Bauprojekte** (Fertighaus-/Ausbauhaus-Angebote, 8 von 48) aussortieren, z. B. neues Schemafeld `bestandsobjekt` + `hard_filter`.
+     - **Schätzmiete bei Leerstand/Sanierungsbedarf:** Angebot 9 (komplett leer, Investitionsbedarf) steht mit geschätzter Miete auf Platz 1. Score oder Kennzeichnung anpassen.
+     - **Duplikate** über Portale zusammenführen (Titel + PLZ, mind. 7 Paare im Bestand).
+     - Provision „zzgl. MwSt.“ wird als Brutto gelesen (Angebot 39: 3,57 % statt ≈ 4,25 %).
+  3. Nach 2–3 Tagen `check_fredy.py` und `sync.py` erneut ausführen (Anleitung, Abschnitt 7), dann Phase 1 abschließen.
 - **Danach:** Phase 5 (Telegram + E-Mail-Digest), Phase 6 (`run.ps1`, Aufgabenplanung, `.claude/settings.json` mit enger Positivliste), dann Phasen 7–8b (Server, MCP, Simulation).
 
 ## Arbeitsweise
@@ -75,6 +80,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 ## Bekannte Grenzen
 
-- Das Abnahmekriterium von Phase 3 (Ist-Miete ≥ 80 %, erreicht wurden 10/10) ist nur mit **selbst geschriebenen Testanzeigen** geprüft, die Extraktion hat Claude ebenfalls selbst erzeugt. Mit echten Anzeigen erneut messen.
+- Abnahmekriterium Phase 3 mit **echten Anzeigen** (18.10.2026): 22 der 48 Anzeigen nennen eine Miete, bei 21 ist die Ist-Miete erkannt (95 %; Regeln 13, Claude 8). Die Ausnahme (Angebot 35) nennt nur die Ladenmiete. Nur 21 der 48 Angebote haben damit überhaupt eine Ist-Miete, der Rest wird mit `miete_schaetzung_eur_m2` geschätzt.
+- Regel `wohneinheiten` lag zweimal falsch („Neubaukonzept für 7 Wohneinheiten“, „5 Wohnungen … vermietet“). Korrigiert und getestet; weitere solche Fälle sind möglich.
 - Ohne `finance.bundesland` im Profil rechnet die Grunderwerbsteuer mit 0 %. Das wird als Hinweis angezeigt.
 - Workflow, Notizen, Benachrichtigungen, Server und MCP fehlen noch, die Tabellen dafür gibt es schon.
