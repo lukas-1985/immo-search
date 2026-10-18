@@ -1,12 +1,14 @@
 # Fredy auf dem Mini-PC (Phase 1). Fester Image-Tag, kein latest/master.
 # Vor einem Update: Release Notes lesen, Backup von D:\docker\fredy anlegen.
+# Start: docker\fredy\setup.ps1 (legt die Ordner an und prüft, dass Fredy antwortet)
 services:
   fredy:
-    image: ghcr.io/orangecoding/fredy:28.0.0   # bei Einrichtung auf die aktuelle Version prüfen
+    image: ghcr.io/orangecoding/fredy:29.3.0
     container_name: fredy
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9998:9998"   # nur lokal; für LAN-Zugriff die LAN-IP davor setzen
+      - "127.0.0.1:9998:9998"   # nur lokal; immo-search läuft auf demselben Rechner
     volumes:
-      - D:/docker/fredy/conf:/conf
-      - D:/docker/fredy/db:/db
+      - ${FREDY_DATA:-D:/docker/fredy}/conf:/conf
+      - ${FREDY_DATA:-D:/docker/fredy}/db:/db
+    shm_size: "1gb"             # Headless-Browser für Immowelt/Kleinanzeigen

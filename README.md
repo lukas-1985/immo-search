@@ -44,6 +44,13 @@ uv run python scripts/parse_attrs.py --db data/dev.db
 uv run python scripts/pending.py --db data/dev.db
 ```
 
-## Fredy
+## Fredy (Phase 1)
 
-`docker/fredy/docker-compose.yml` startet Fredy mit festem Image-Tag. In Fredy je Profil und Portal einen Job anlegen; die Job-Namen gehören in `config/profiles/<profil>.yaml` → `fredy.jobs` (oder `job_prefix`).
+Schritt-für-Schritt-Anleitung für den Mini-PC: [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docker\fredy\setup.ps1   # Fredy starten
+uv run python scripts/check_fredy.py                             # Diagnose, liest nur
+```
+
+In Fredy je Profil und Portal einen Job anlegen. Die Job-Namen gehören in `config/profiles/<profil>.yaml` → `fredy.jobs` (oder `job_prefix`).

@@ -35,6 +35,14 @@ class FredyClient(Protocol):
     def close(self) -> None: ...
 
 
+class RawFredyClient(FredyClient, Protocol):
+    """Zusätzlich die Rohdaten – für die Diagnose (scripts/check_fredy.py)."""
+
+    def raw_jobs(self) -> list[dict[str, Any]]: ...
+
+    def iter_raw(self, job: FredyJob) -> Iterator[dict[str, Any]]: ...
+
+
 # --------------------------------------------------------------------------- Abbildung
 
 
@@ -115,12 +123,14 @@ class FredyApiClient:
         except httpx.HTTPError as exc:
             raise FredyError(f"GET {path} fehlgeschlagen: {exc}") from exc
 
-    def list_jobs(self) -> list[FredyJob]:
+    def raw_jobs(self) -> list[dict[str, Any]]:
         data = self._get_json("/api/jobs")
-        rows = data.get("result", data) if isinstance(data, dict) else data
-        return [FredyJob(id=str(j["id"]), name=str(j["name"])) for j in rows]
+        return data.get("result", data) if isinstance(data, dict) else data
 
-    def iter_listings(self, job: FredyJob) -> Iterator[FredyListing]:
+    def list_jobs(self) -> list[FredyJob]:
+        return [FredyJob(id=str(j["id"]), name=str(j["name"])) for j in self.raw_jobs()]
+
+    def iter_raw(self, job: FredyJob) -> Iterator[dict[str, Any]]:
         page, size = 1, self._settings.page_size
         while True:
             data = self._get_json(
@@ -128,11 +138,14 @@ class FredyApiClient:
                 {"page": page, "pageSize": size, "sortfield": "created_at", "sortdir": "desc", "jobIdFilter": job.id},
             )
             rows = data.get("result", []) if isinstance(data, dict) else data
-            for row in rows:
-                yield listing_from_row(row, job)
+            yield from rows
             if len(rows) < size:
                 return
             page += 1
+
+    def iter_listings(self, job: FredyJob) -> Iterator[FredyListing]:
+        for row in self.iter_raw(job):
+            yield listing_from_row(row, job)
 
     def close(self) -> None:
         self._http.close()
@@ -150,17 +163,23 @@ class FredySqliteClient:
             raise FredyError(f"Fredy-DB nicht lesbar ({path}): {exc}") from exc
         self._conn.row_factory = sqlite3.Row
 
-    def list_jobs(self) -> list[FredyJob]:
-        rows = self._conn.execute("SELECT id, name FROM jobs").fetchall()
-        return [FredyJob(id=str(r["id"]), name=str(r["name"])) for r in rows]
+    def raw_jobs(self) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._conn.execute("SELECT * FROM jobs")]
 
-    def iter_listings(self, job: FredyJob) -> Iterator[FredyListing]:
+    def list_jobs(self) -> list[FredyJob]:
+        return [FredyJob(id=str(r["id"]), name=str(r["name"])) for r in self.raw_jobs()]
+
+    def iter_raw(self, job: FredyJob) -> Iterator[dict[str, Any]]:
         cur = self._conn.execute(
             "SELECT * FROM listings WHERE job_id = ? AND COALESCE(manually_deleted, 0) = 0 ORDER BY created_at DESC",
             (job.id,),
         )
         for row in cur:
-            yield listing_from_row(dict(row), job)
+            yield dict(row)
+
+    def iter_listings(self, job: FredyJob) -> Iterator[FredyListing]:
+        for row in self.iter_raw(job):
+            yield listing_from_row(row, job)
 
     def close(self) -> None:
         self._conn.close()
@@ -169,7 +188,7 @@ class FredySqliteClient:
 # --------------------------------------------------------------------------- Fabrik & Job-Auflösung
 
 
-def create_client(config: Config) -> FredyClient:
+def create_client(config: Config) -> RawFredyClient:
     fs = config.settings.fredy
     if fs.access == "sqlite":
         return FredySqliteClient(fs.sqlite_path)  # type: ignore[arg-type]
