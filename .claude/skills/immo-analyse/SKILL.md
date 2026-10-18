@@ -30,8 +30,9 @@ Alle Befehle laufen im Projektordner mit `uv run python scripts/<name>.py`. Schr
    - Exit-Code 2: Die Ausgabe nennt unter `abgelehnt` die Gründe. Korrigiere **nur** diese Ergebnisse, schreibe sie in eine neue Datei und speichere sie **einmal** erneut. Was dann noch scheitert, wird beim nächsten Lauf wieder vorgelegt.
    - `feld_abgelehnt` bei angenommenen Ergebnissen: einzelne Felder wurden verworfen (z. B. Belegstelle nicht gefunden). Nicht erneut senden, nur im Abschluss erwähnen.
    - Ist `offen_gesamt` größer als die Anzahl der Angebote, Schritte 3–5 wiederholen, höchstens dreimal je Lauf.
-6. **Bewerten** (`scripts/score.py`) und **Melden** (`scripts/notify.py`): erst ab Phase 4/5 vorhanden. Fehlt das Skript, diesen Schritt überspringen.
-7. **Abschluss:** kurze Zusammenfassung in 3–6 Zeilen: geholt / neu / ausgewertet / abgelehnt / Fehler.
+6. **Bewerten:** `uv run python scripts/score.py` – bewertet alle Angebote neu und zeigt die Spitzenreiter mit Kaufpreisempfehlung.
+7. **Melden** (`scripts/notify.py`): erst ab Phase 5 vorhanden. Fehlt das Skript, diesen Schritt überspringen.
+8. **Abschluss:** kurze Zusammenfassung in 3–6 Zeilen: geholt / neu / ausgewertet / abgelehnt / bewertet / Fehler, dazu die Top 3 mit Score, Preis und Kaufpreisempfehlung.
 
 ## Regeln für die Extraktion
 

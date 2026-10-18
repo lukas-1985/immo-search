@@ -5,7 +5,8 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN
 ## Stand
 
 - Phase 2 (Kern & Sync): Konfiguration mit Prüfung, eigene DB, Fredy-Client (API / SQLite read-only), `sync` mit `fetch_filter` und Preisverlauf.
-- Phase 3 (Extraktion): Schema MFH, Regel-Parser `parse_attrs`, `pending`/`save` mit Schema-, Beleg- und Plausibilitätsprüfung, Skill `immo-analyse` (Schritte bis `save`).
+- Phase 3 (Extraktion): Schema MFH, Regel-Parser `parse_attrs`, `pending`/`save` mit Schema-, Beleg- und Plausibilitätsprüfung, Skill `immo-analyse`.
+- Phase 4 (Scoring & Finanzen): `finance.simulate()`, Kaufpreisempfehlung mit Zinsspanne, KPI-Register, Ausschlusskriterien, Score (gewichtet oder Formel), Ranking. `uv run python scripts/score.py`
 - Phase 1 (Fredy auf dem Mini-PC) steht noch aus: Die Feldnamen der Fredy-API sind erst gegen den Quellcode geprüft, nicht gegen ein laufendes System.
 
 ## Einrichten

@@ -116,6 +116,7 @@ class FinanceAssumptions(_Strict):
     instandhaltung_eur_m2_jahr: float | None = Field(None, ge=0)
     sanierung_sofort: float | None = Field(None, ge=0)
     miete_schaetzung_eur_m2: float | None = Field(None, ge=0)
+    marktmiete_eur_m2: float | None = Field(None, ge=0)  # für KPI mietpotenzial (Mietspiegel/Marktmiete netto kalt)
 
 
 class SteuernSettings(_Strict):

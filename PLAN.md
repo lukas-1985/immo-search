@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 18.10.2026 · Status: Phasen 2 (Kern & Sync) und 3 (Extraktion) umgesetzt, Phase 1 (Fredy auf dem Mini-PC) offen.
+> Stand: 18.10.2026 · Status: Phasen 2–4 (Sync, Extraktion, Scoring & Kaufpreisempfehlung) umgesetzt, Phase 1 (Fredy auf dem Mini-PC) offen.
 
 ---
 
@@ -266,7 +266,8 @@ Jede Kennzahl ist eine benannte Funktion. Sie liefert `(wert, qualität)`, wobei
 | `bruttorendite` | Jahresnettokaltmiete (Ist) / Kaufpreis | Ist-Miete (Extraktion oder Schätzung) |
 | `faktor` | Kaufpreis / Jahresnettokaltmiete | dito |
 | `nettoanfangsrendite` | (Jahresmiete − Bewirtschaftung) / (Kaufpreis + Nebenkosten) | + Finanzannahmen |
-| `cashflow_monat` | (Miete − Bewirtschaftung − Zins − Tilgung) / 12, Formel siehe 5.6 | + Finanzierung |
+| `cashflow_monat` | (Miete − Bewirtschaftung − Zins − Tilgung) / 12, Formel siehe 5.6. Mit `tilgung_einrechnen: false` ohne Tilgung, damit Cashflow und Kaufpreisempfehlung dieselbe Definition haben. | + Finanzierung |
+| `preis_m2` | Kaufpreis / Wohnfläche | Fläche |
 | `mietpotenzial` | (Marktmiete − Ist-Miete) / Ist-Miete | Marktmiete (Konfiguration/Mietspiegel) |
 | `preis_m2_vs_markt` | Preis/m² ggü. lokalem Median (Fredy-Benchmark) | Fredy-Daten |
 | `kaufpreisempfehlung` | Kaufpreis, bei dem `cashflow_monat` = Ziel-Cashflow, siehe 5.6 | + Finanzierung |
@@ -276,7 +277,14 @@ Jede Kennzahl ist eine benannte Funktion. Sie liefert `(wert, qualität)`, wobei
 
 **Normalisierung:**
 - Jede KPI wird auf 0–100 Punkte abgebildet (`linear`, später auch `stufen` oder `ziel`).
-- Der Score ist die gewichtete Summe der Punkte, alternativ die freie `formula`.
+- Der Score ist die gewichtete Summe der Punkte geteilt durch die Summe der Gewichte, bleibt also bei 0–100. Alternativ gilt die freie `formula` (Namen: `<kpi>` = Rohwert, `<kpi>_n` = Punkte; erlaubt sind + − × ÷, `min`, `max`, `abs`).
+- `on_missing` je KPI, wenn der Wert fehlt oder nur geschätzt ist:
+  - `estimate`: Schätzung verwenden. Gibt es keine, zählt die KPI 0 Punkte.
+  - `zero`: 0 Punkte.
+  - `exclude`: Die KPI fällt für dieses Angebot aus der Summe.
+  
+  Das Angebot wird in allen drei Fällen als „unvollständig“ markiert.
+- `mietpotenzial` braucht `finance.marktmiete_eur_m2` im Profil. `preis_m2_vs_markt` folgt, sobald `sync` Fredys Markt-Benchmark übernimmt.
 - Jedes Ergebnis speichert, welche KPIs eingeflossen sind und welche davon geschätzt wurden. Im Digest und in der Detailansicht ist das sichtbar.
 
 ### 5.5 Globale Einstellungen `config/settings.yaml` (Auszug)
