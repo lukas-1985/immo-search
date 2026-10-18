@@ -32,6 +32,10 @@
         "erbpacht":          { "$ref": "#/$defs/janein" },
         "denkmalschutz":     { "$ref": "#/$defs/janein" },
         "aufgeteilt_weg":    { "$ref": "#/$defs/janein" },
+        "bauprojekt": {
+          "description": "true = kein Bestandsobjekt, sondern Fertighaus-/Ausbauhaus-/Neubauprojekt, das erst gebaut wird",
+          "$ref": "#/$defs/janein"
+        },
         "verhandlungsbasis": { "$ref": "#/$defs/janein" },
         "heizungsart": {
           "description": "z. B. Gas-Zentralheizung, Etagenheizung Gas, Fernwärme, Wärmepumpe, Öl, Nachtspeicher",

@@ -218,6 +218,7 @@ hard_filter:
   - { field: erbpacht,        op: "==", value: false, on_missing: keep }
   - { field: wohneinheiten,   op: ">=", value: 3,     on_missing: keep }
   - { field: denkmalschutz,   op: "==", value: false, on_missing: keep }
+  - { field: bauprojekt,      op: "==", value: false, on_missing: keep }
   - { field: bruttorendite,   op: ">=", value: 0.04,  on_missing: keep }
   # on_missing: keep = behalten & als „unvollständig“ markieren | drop = ausschließen
 
@@ -403,6 +404,7 @@ neu → gesichtet → interessant → angefragt → besichtigt → angebot_abgeg
 | `provision` | % / „provisionsfrei“ | 3,57 % |
 | `grundstueck_m2` | int | 820 |
 | `erbpacht`, `denkmalschutz`, `aufgeteilt_weg` | bool | false |
+| `bauprojekt` | bool (true = Fertighaus-/Ausbauhaus-Angebot, kein Bestand) | false |
 | `heizungsart`, `heizung_baujahr` | text, int | Gas, 2012 |
 | `sanierungen` | Liste {Bauteil, Jahr} | Dach 2018, Fenster 2010 |
 | `zustand` | Aufzählung | gepflegt / renovierungsbedürftig / Sanierungsstau |

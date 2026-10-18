@@ -6,18 +6,18 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 ## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
 
-- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 99 Tests grün.
+- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 106 Tests grün.
 - **Erster echter Lauf (18.10.2026):** 48 Angebote in `data/immo.db` (sync zweimal, 2. Lauf neu = 0), Regeln + Claude-Extraktion für alle 48 (0 abgelehnt), `score.py` gelaufen. Extraktionsdateien unter `data/extraction/`.
 - **Phase 1 fast fertig:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy`. Fredy 29.3.0 läuft unter http://localhost:9998. Passwort steht in `.env`.
   - Aktives Profil `mfh-kl` (Kaiserslautern, 5 km, 300 000–2 000 000 €, RP, EK = nur Nebenkosten, Miete 9 €/m²). Fredy-Jobs „MFH KL – IS24/Immowelt/Kleinanzeigen“, Analytics aus, Arbeitszeit 07–22 Uhr, Intervall 60 Min., `provider_details` für alle drei Portale.
   - Ergebnisse der Diagnose: Tabelle in [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitt 8.
 - **Nächster Schritt:**
   1. Immowelt beobachten: Beim ersten Lauf meldete Fredy „detected as a bot“ (HTTP 403). Der Nutzer will unabhängig davon weitermachen.
-  2. Erkenntnisse aus dem ersten Lauf umsetzen (mit dem Nutzer abstimmen):
-     - **Bauprojekte** (Fertighaus-/Ausbauhaus-Angebote, 8 von 48) aussortieren, z. B. neues Schemafeld `bestandsobjekt` + `hard_filter`.
-     - **Schätzmiete bei Leerstand/Sanierungsbedarf:** Angebot 9 (komplett leer, Investitionsbedarf) steht mit geschätzter Miete auf Platz 1. Score oder Kennzeichnung anpassen.
-     - **Duplikate** über Portale zusammenführen (Titel + PLZ, mind. 7 Paare im Bestand).
-     - Provision „zzgl. MwSt.“ wird als Brutto gelesen (Angebot 39: 3,57 % statt ≈ 4,25 %).
+  2. Erkenntnisse aus dem ersten Lauf:
+     - Erledigt: **Bauprojekte** (Fertighaus-/Ausbauhaus-Angebote) über das Schemafeld `bauprojekt` (Regel + Claude) und `hard_filter bauprojekt == false` ausgeschlossen, alle 8 im Bestand erkannt. Schema-Version bewusst nicht erhöht (additives, optionales Feld, sonst müsste Claude alles neu auswerten).
+     - Entschieden: **Leerstand** gilt dem Nutzer grundsätzlich als positiv (Mietpotenzial). Das Ranking mit Schätzmiete bleibt, auch wenn ein leeres Haus vorn steht.
+     - Offen: **Duplikate** über Portale zusammenführen (Titel + PLZ, mind. 7 Paare im Bestand).
+     - Offen: Provision „zzgl. MwSt.“ wird als Brutto gelesen (Angebot 39: 3,57 % statt ≈ 4,25 %).
   3. Nach 2–3 Tagen `check_fredy.py` und `sync.py` erneut ausführen (Anleitung, Abschnitt 7), dann Phase 1 abschließen.
 - **Danach:** Phase 5 (Telegram + E-Mail-Digest), Phase 6 (`run.ps1`, Aufgabenplanung, `.claude/settings.json` mit enger Positivliste), dann Phasen 7–8b (Server, MCP, Simulation).
 

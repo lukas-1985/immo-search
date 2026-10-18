@@ -26,6 +26,7 @@ hard_filter:
   - { field: erbpacht,        op: "==", value: false, on_missing: keep }
   - { field: wohneinheiten,   op: ">=", value: 3,     on_missing: keep }
   - { field: denkmalschutz,   op: "==", value: false, on_missing: keep }
+  - { field: bauprojekt,      op: "==", value: false, on_missing: keep }   # Fertighaus-/Ausbauhaus-Angebote
   - { field: bruttorendite,   op: ">=", value: 0.04,  on_missing: keep }
 
 scoring:

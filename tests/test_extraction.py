@@ -59,6 +59,26 @@ def test_wohneinheiten_bestand_statt_vermieteter_teil():
     assert extract_rules(titel, text, SCHEMA)["wohneinheiten"]["wert"] == 8
 
 
+@pytest.mark.parametrize("titel, text", [
+    # echte Anzeigen KL, 18.10.2026
+    ("Junges Wohnen mit viel individuellem Spielraum. FamilyStyle 17.01 S", "Projektiertes Ausbauhaus mit Bodenplatte."),
+    ("Individuelles Mehrfamilienhaus in Morlautern - Ihr maßgeschneidertes Bauprojekt", None),
+    ("Modernes Mehrfamilienhaus", "Dieses projektierte Mehrfamilienhaus in Morlautern, Kaiserslautern"),
+    ("EIN STADTHAUS MIT ZAHLREICHEN HIGHLIGHTS.", "Wir bauen gerne gemeinsam mit Ihnen auf Ihrem eigenen Bauplatz in Siegelbach."),
+])
+def test_bauprojekt_erkannt(titel, text):
+    assert extract_rules(titel, text, SCHEMA)["bauprojekt"]["wert"] is True
+
+
+@pytest.mark.parametrize("text", [
+    "Fertighaus, Baujahr 1975, voll vermietet",
+    "Bauträger, die die innerstädtische Lage für ein Neubauprojekt nutzen wollen",
+    "Baugenehmigung für ein Mehrfamilienhaus mit sieben Wohneinheiten",
+])
+def test_bauprojekt_nicht_bei_bestand(text):
+    assert "bauprojekt" not in extract_rules(None, text, SCHEMA)
+
+
 def test_belegstelle_tolerates_whitespace_quotes_and_ellipsis():
     text = "Das Haus „Lindenhof“ hat\n6   Wohnungen. Im Keller ist es feucht."
     assert belegstelle_found('Das Haus "Lindenhof" hat 6 Wohnungen', text)

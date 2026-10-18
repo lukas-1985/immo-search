@@ -57,6 +57,7 @@ Alle Befehle laufen im Projektordner mit `uv run python scripts/<name>.py`. Schr
 | `leerstand_einheiten` | nur, wenn ausdrücklich leerstehende Einheiten genannt sind |
 | `erbpacht` | `true` bei Erbbaurecht/Erbpacht; `false` nur bei ausdrücklicher Verneinung |
 | `denkmalschutz`, `aufgeteilt_weg` | wie `erbpacht`: `false` nur bei ausdrücklicher Verneinung |
+| `bauprojekt` | `true`, wenn das Haus erst gebaut wird: Fertighaus-/Ausbauhaus-Angebote, „projektiert“, „entsteht“, Grundstück separat zu kaufen. `false` nur bei einem bestehenden Gebäude mit Baujahr, Mietern oder Sanierungshistorie. Bestandsobjekte mit Baugenehmigung für einen Neubau sind **kein** Bauprojekt. |
 | `zustand` | `neuwertig` (Neubau, kernsaniert), `gepflegt`, `renovierungsbeduerftig`, `sanierungsstau` (erheblicher Investitionsbedarf genannt) |
 | `sanierungen` | Liste `{bauteil, jahr}`; `jahr: null`, wenn nicht genannt |
 | `verhandlungsbasis` | `true` bei „VB“, „Verhandlungsbasis“; `false` bei „Festpreis“ |

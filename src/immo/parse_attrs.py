@@ -192,6 +192,19 @@ def _aufgeteilt(text: str) -> Item | None:
     )
 
 
+def _bauprojekt(text: str) -> Item | None:
+    """Nur „ja“: Fertighaus-/Ausbauhaus-Angebote. Fehlt ein Hinweis, heißt das nicht „Bestandsobjekt“.
+
+    „Fertighaus“ allein reicht nicht (auch Bestandshäuser sind Fertighäuser), „Neubauprojekt“ auch nicht
+    (Bestandsobjekte mit Baugenehmigung werben damit).
+    """
+    pattern = (
+        r"\bAusbauhaus\w*|\bBauprojekt\w*|auf\s+Ihrem\s+(?:eigenen\s+)?Bauplatz"
+        r"|\bprojektierte[snm]?\s+(?:Ausbauhaus|Mehrfamilienhaus|Wohnhaus|Haus|Fertighaus)\b"
+    )
+    return _unique([(True, _line_of(text, m)) for m in re.finditer(pattern, text, re.IGNORECASE)])
+
+
 def _verhandlungsbasis(text: str) -> Item | None:
     return _janein(text, r"\bVB\b|\bVerhandlungsbasis\b|\bverhandelbar\b", r"\bFestpreis\b|\bnicht\s+verhandelbar\b")
 
@@ -243,6 +256,7 @@ RULES: dict[str, Callable[[str], Item | None]] = {
     "erbpacht": _erbpacht,
     "denkmalschutz": _denkmalschutz,
     "aufgeteilt_weg": _aufgeteilt,
+    "bauprojekt": _bauprojekt,
     "verhandlungsbasis": _verhandlungsbasis,
     "heizungsart": _heizungsart,
     "heizung_baujahr": _heizung_baujahr,
