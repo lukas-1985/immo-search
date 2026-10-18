@@ -25,7 +25,7 @@ def test_api_client_logs_in_and_pages():
         if request.url.path == "/api/jobs":
             return httpx.Response(200, json=[{"id": "j1", "name": "Job 1"}])
         page = int(request.url.params["page"])
-        assert request.url.params["jobIdFilter"] == "j1"
+        assert request.url.params["jobNameFilter"] == "j1"
         rows = [_row(n) for n in range((page - 1) * 2, min(page * 2, 5))]
         return httpx.Response(200, json={"totalNumber": 5, "page": page, "result": rows})
 

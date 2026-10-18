@@ -1,6 +1,6 @@
 id: mfh-beispiel
 name: "MFH Region X (Beispiel)"
-active: true
+active: false                     # Vorlage; aktives Profil: mfh-kl.yaml
 objektart: mehrfamilienhaus
 
 # Stufe 1 – zugehörige Fredy-Jobs (Such-URLs werden in Fredy gepflegt)

@@ -9,6 +9,8 @@ Größen (siehe PLAN.md 5.6):
     Cashflow/Jahr CF = M − B − k · D
     Empfehlung    P* = ((M − B − 12·C) / k + EK − S) / (1 + n)
 
+    EK = "nebenkosten" heißt EK = P · n, also D = P + S und P* = (M − B − 12·C) / k − S.
+
 Phase 8b erweitert `simulate()` um Mehrjahresverlauf, Steuern, IRR usw.; die Werte hier bleiben gleich.
 """
 
@@ -41,7 +43,7 @@ class Annahmen:
     notar_grundbuch: float
     makler: float
     sanierung_sofort: float
-    eigenkapital: float
+    eigenkapital: float | Literal["nebenkosten"]
     zins: float
     tilgung: float
     bewirtschaftung_quote: float
@@ -54,6 +56,10 @@ class Annahmen:
     @property
     def nebenkosten_quote(self) -> float:
         return self.grunderwerbsteuer + self.notar_grundbuch + self.makler
+
+    def eigenkapital_bei(self, preis: float) -> float:
+        """EK in € bei diesem Kaufpreis ("nebenkosten" = genau die Kaufnebenkosten)."""
+        return preis * self.nebenkosten_quote if self.eigenkapital == "nebenkosten" else self.eigenkapital
 
     @property
     def kapitaldienst_satz(self) -> float:
@@ -117,7 +123,7 @@ def bewirtschaftung(a: Annahmen) -> float | None:
 
 def darlehen(a: Annahmen, preis: float | None = None) -> float:
     p = a.kaufpreis if preis is None else preis
-    return max(0.0, p * (1 + a.nebenkosten_quote) + a.sanierung_sofort - a.eigenkapital)
+    return max(0.0, p * (1 + a.nebenkosten_quote) + a.sanierung_sofort - a.eigenkapital_bei(p))
 
 
 def empfohlener_preis(a: Annahmen) -> tuple[float | None, str]:
@@ -130,7 +136,10 @@ def empfohlener_preis(a: Annahmen) -> tuple[float | None, str]:
     k = a.kapitaldienst_satz
     if k <= 0:
         return None, "unbegrenzt"
-    p = (ueberschuss / k + a.eigenkapital - a.sanierung_sofort) / (1 + a.nebenkosten_quote)
+    if a.eigenkapital == "nebenkosten":
+        p = ueberschuss / k - a.sanierung_sofort
+    else:
+        p = (ueberschuss / k + a.eigenkapital - a.sanierung_sofort) / (1 + a.nebenkosten_quote)
     # P* ≤ 0: selbst ohne Kaufpreis trägt die Sanierung (abzüglich EK) das Ziel nicht
     return (p, "ok") if p > 0 else (None, "nicht_erreichbar")
 
@@ -215,7 +224,7 @@ def annahmen_fuer(
         makler=f.makler_default if provision is None else provision,  # type: ignore[arg-type]
         makler_quelle="default" if provision is None else "anzeige",
         sanierung_sofort=f.sanierung_sofort or 0.0,
-        eigenkapital=f.eigenkapital or 0.0,
+        eigenkapital=f.eigenkapital if f.eigenkapital == "nebenkosten" else (f.eigenkapital or 0.0),
         zins=f.zins,  # type: ignore[arg-type]
         tilgung=f.tilgung,  # type: ignore[arg-type]
         bewirtschaftung_quote=f.bewirtschaftung_quote,  # type: ignore[arg-type]

@@ -6,11 +6,14 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 ## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
 
-- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 95 Tests grün. Phase 1 ist vorbereitet (Anleitung, `setup.ps1`, `scripts/check_fredy.py`).
-- **Phase 1 läuft:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy` (Standard in `setup.ps1`). Fredy 29.3.0 läuft unter http://localhost:9998.
+- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 96 Tests grün.
+- **Phase 1 fast fertig:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy`. Fredy 29.3.0 läuft unter http://localhost:9998. Passwort steht in `.env`.
+  - Aktives Profil `mfh-kl` (Kaiserslautern, 5 km, 300 000–2 000 000 €, RP, EK = nur Nebenkosten, Miete 9 €/m²). Fredy-Jobs „MFH KL – IS24/Immowelt/Kleinanzeigen“, Analytics aus, Arbeitszeit 07–22 Uhr, Intervall 60 Min., `provider_details` für alle drei Portale.
+  - Ergebnisse der Diagnose: Tabelle in [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitt 8.
 - **Nächster Schritt:**
-  1. **Der Nutzer erledigt selbst:** Fredy-Login, Passwort ändern (danach in `.env`), Analytics ablehnen, Jobs mit Such-URLs anlegen, Platzhalter im Profil füllen. Claude gibt keine Passwörter ein. Anleitung: [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitte 1 und 4–5.
-  2. `uv run python scripts/check_fredy.py` ausführen, Bericht und `data/fredy_check/*.json` auswerten, `fredy_client.py` an die echten Felder anpassen, offene Punkte 1–7 in der Tabelle der Anleitung eintragen.
+  1. Immowelt beobachten: Beim ersten Lauf meldete Fredy „detected as a bot“ (HTTP 403).
+  2. Nach 2–3 Tagen `check_fredy.py` und zweimal `sync.py` ausführen (Anleitung, Abschnitt 7). Danach die Extraktion an echten Anzeigen messen (Ist-Miete ≥ 80 %).
+  3. Offen für den Nutzer: Windows-Einstellungen aus Abschnitt 1 der Anleitung (Standby, Autologon, Sperre) und „Start Docker Desktop when you sign in“.
 - **Danach:** Phase 5 (Telegram + E-Mail-Digest), Phase 6 (`run.ps1`, Aufgabenplanung, `.claude/settings.json` mit enger Positivliste), dann Phasen 7–8b (Server, MCP, Simulation).
 
 ## Arbeitsweise
@@ -56,7 +59,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 **API**
 - Login über `POST /api/login` mit `{username, password}`, danach Session-Cookie.
 - `GET /api/jobs` liefert eine Liste.
-- `GET /api/listings/table` mit `page`, `pageSize`, `sortfield`, `sortdir`, `jobIdFilter`. Die Zeilen stehen unter `result`.
+- `GET /api/listings/table` mit `page`, `pageSize`, `sortfield`, `sortdir`, `jobNameFilter` (Wert = Job-ID, `jobIdFilter` wird ignoriert). Die Zeilen stehen unter `result`.
 
 **Tabelle `listings`**
 - Spalten u. a. `id, hash, provider, job_id, price, size, rooms, build_year, energy_class, title, image_url, description, address, link, created_at, is_active, latitude, longitude, published_at, price_per_sqm, manually_deleted`.

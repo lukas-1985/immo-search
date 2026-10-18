@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -107,7 +107,8 @@ class FinanceAssumptions(_Strict):
     """Alle Felder optional: Profil-Werte überschreiben die Defaults aus settings.yaml."""
 
     bundesland: str | None = None
-    eigenkapital: float | None = Field(None, ge=0)
+    # Betrag in € oder "nebenkosten": EK deckt genau die Kaufnebenkosten, der Kaufpreis wird voll finanziert
+    eigenkapital: Annotated[float, Field(ge=0)] | Literal["nebenkosten"] | None = None
     zins: float | None = Field(None, ge=0, le=0.25)
     tilgung: float | None = Field(None, ge=0, le=0.25)
     notar_grundbuch: float | None = Field(None, ge=0, le=0.1)

@@ -125,13 +125,14 @@ uv run python scripts/sync.py
 
 | Punkt | Ergebnis | Datum |
 |---|---|---|
-| 1 Fredy-API (Login, Felder) | | |
-| 2 Erstbefüllung | | |
-| 3 Details je Portal (Beschreibung vollständig?) | | |
-| 4 IS24-Such-URL für MFH | | |
-| 5 Duplikate über Portale | | |
-| 6 Zuordnung Objektart/Job | | |
-| 7 PLZ/Koordinaten | | |
+| 1 Fredy-API (Login, Felder) | ok. Felder = DB-Spalten (snake_case), `created_at` = Epoch-ms als Text. Job-Filter heißt `jobNameFilter` (Wert = Job-ID), `jobIdFilter` wird ignoriert – im Client korrigiert. | 18.10.2026 |
+| 2 Erstbefüllung | Erster Lauf holt den ganzen Bestand (IS24 26, Kleinanzeigen 23). | 18.10.2026 |
+| 3 Details je Portal (Beschreibung vollständig?) | Ohne Detailabruf nein: IS24 leer, Kleinanzeigen nach ~100 Zeichen abgeschnitten. Benutzereinstellung `provider_details` = `[immoscout, immowelt, kleinanzeigen]` gesetzt, Bestand per `POST /api/listings/:id/details` nachgeladen (49/49). Danach Median IS24 2 774, Kleinanzeigen 3 176 Zeichen, nichts mehr abgeschnitten. Regeln finden Ist-Miete: IS24 42 %, Kleinanzeigen 9 %. | 18.10.2026 |
+| 4 IS24-Such-URL für MFH | `Suche/radius/mehrfamilienhaus-kaufen?geocoordinates=…` funktioniert. Fredy 29.3 kann auch `anlageimmobilie`. | 18.10.2026 |
+| 5 Duplikate über Portale | Keine Kennung von Fredy. Gleicher Titel + PLZ trifft (8 Paare IS24/Kleinanzeigen). | 18.10.2026 |
+| 6 Zuordnung Objektart/Job | ein Job je Portal, Profil über `job_prefix: "MFH KL"` | 18.10.2026 |
+| 7 PLZ/Koordinaten | PLZ 100 %. Koordinaten: IS24 23 %, Kleinanzeigen 100 %. Baujahr 0 %. | 18.10.2026 |
+| Immowelt | Erster Lauf: Bot erkannt (HTTP 403), 0 Angebote. Beobachten. | 18.10.2026 |
 | 8 Claude ohne Oberfläche (Phase 6) | | |
 
 Phase 1 ist fertig, wenn alle drei Portale Angebote liefern und die Punkte 1–7 hier eingetragen sind. Punkt 8 klärt sich mit `run.ps1` in Phase 6.

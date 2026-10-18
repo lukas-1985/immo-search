@@ -1,0 +1,47 @@
+id: mfh-kl
+name: "MFH Kaiserslautern"
+active: true
+objektart: mehrfamilienhaus
+
+# Stufe 1 – zugehörige Fredy-Jobs (Such-URLs werden in Fredy gepflegt)
+fredy:
+  job_prefix: "MFH KL"             # Jobs „MFH KL – IS24“, „MFH KL – Immowelt“, „MFH KL – Kleinanzeigen“
+
+# Stufe 2 – Vorfilter beim Datenholen. null = Kriterium nicht gesetzt.
+fetch_filter:
+  location:                        # ODER-verknüpft: ein Treffer reicht
+    plz_prefix: ["67655", "67657", "67659", "67661", "67663"]   # Stadt Kaiserslautern
+    orte: ["Kaiserslautern"]
+    umkreis: { lat: 49.4447, lon: 7.7690, km: 5 }                # Stiftsplatz
+    on_missing: keep
+  preis:       { min: 300000, max: 2000000 }
+  wohnflaeche: { min: null, max: null }
+  zimmer:      { min: null, max: null }
+  baujahr:     { min: null, max: null }
+  providers:   [immoscout, immowelt, kleinanzeigen]
+  exclude_keywords: ["Zwangsversteigerung", "Tausch"]
+
+# Stufe 3 – Ausschlusskriterien (auch extrahierte Felder)
+hard_filter:
+  - { field: erbpacht,        op: "==", value: false, on_missing: keep }
+  - { field: wohneinheiten,   op: ">=", value: 3,     on_missing: keep }
+  - { field: denkmalschutz,   op: "==", value: false, on_missing: keep }
+  - { field: bruttorendite,   op: ">=", value: 0.04,  on_missing: keep }
+
+scoring:
+  kpis:
+    bruttorendite:
+      weight: 1.0
+      normalize: { type: linear, min: 0.04, max: 0.08 }
+      on_missing: estimate
+  alert_threshold: 75
+  digest_top_n: 10
+
+finance:
+  bundesland: RP
+  eigenkapital: nebenkosten        # EK deckt nur die Kaufnebenkosten, Kaufpreis voll finanziert
+  miete_schaetzung_eur_m2: 9.0
+
+kaufpreisempfehlung:
+  ziel_cashflow_monat: 0
+  tilgung_einrechnen: true

@@ -135,7 +135,8 @@ class FredyApiClient:
         while True:
             data = self._get_json(
                 "/api/listings/table",
-                {"page": page, "pageSize": size, "sortfield": "created_at", "sortdir": "desc", "jobIdFilter": job.id},
+                # Fredy 29.x: der Job-Filter heißt `jobNameFilter`, erwartet aber die Job-ID; `jobIdFilter` wird ignoriert
+                {"page": page, "pageSize": size, "sortfield": "created_at", "sortdir": "desc", "jobNameFilter": job.id},
             )
             rows = data.get("result", []) if isinstance(data, dict) else data
             yield from rows

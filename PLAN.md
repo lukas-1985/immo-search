@@ -241,7 +241,7 @@ scoring:
 # Finanzannahmen (überschreiben Defaults aus settings.yaml)
 finance:
   bundesland: XX               # PLATZHALTER → Grunderwerbsteuer aus Tabelle
-  eigenkapital: 0              # PLATZHALTER (€)
+  eigenkapital: 0              # PLATZHALTER (€) oder "nebenkosten" (EK = Kaufnebenkosten, Kaufpreis voll finanziert)
   zins: 0.038
   tilgung: 0.02
   notar_grundbuch: 0.02

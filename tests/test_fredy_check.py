@@ -30,7 +30,7 @@ def _client():
             return httpx.Response(200)
         if request.url.path == "/api/jobs":
             return httpx.Response(200, json=JOBS)
-        return httpx.Response(200, json={"result": ROWS[request.url.params["jobIdFilter"]]})
+        return httpx.Response(200, json={"result": ROWS[request.url.params["jobNameFilter"]]})
 
     return FredyApiClient(FredySettings(base_url="http://fredy.test"), "u", "p", transport=httpx.MockTransport(handler))
 

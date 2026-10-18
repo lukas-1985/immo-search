@@ -63,6 +63,14 @@ def test_beispiel_e_eigenkapital_deckt_alles():
     assert e.kaufpreisempfehlung.preis == approx(837_804.26)
 
 
+def test_beispiel_f_eigenkapital_nur_nebenkosten():
+    e = simulate(A, eigenkapital="nebenkosten")
+    assert e.darlehen == approx(1_000_000.00)  # Kaufpreis voll finanziert
+    assert e.cashflow_monat == approx(-1_500.00)  # 50 000 − 10 000 − 5,8 % · 1 000 000
+    assert e.kaufpreisempfehlung.preis == approx(689_655.17)  # 40 000 / 0,058
+    assert simulate(A, eigenkapital="nebenkosten", sanierung_sofort=50_000).darlehen == approx(1_050_000.00)
+
+
 def test_sonderfaelle():
     assert simulate(A, miete_ist=None, miete_qualitaet=None).kaufpreisempfehlung.status == "miete_fehlt"
     assert simulate(A, zins=0.0, tilgung_einrechnen=False).kaufpreisempfehlung.status == "unbegrenzt"
@@ -80,7 +88,7 @@ def test_beim_empfohlenen_preis_ist_cashflow_exakt_das_ziel():
         a = A.mit(
             miete_ist=rnd.uniform(10_000, 200_000), wohnflaeche=rnd.uniform(100, 2000),
             grunderwerbsteuer=rnd.choice([0.035, 0.05, 0.065]), makler=rnd.choice([0.0, 0.0357, 0.0714]),
-            sanierung_sofort=rnd.choice([0, 25_000, 100_000]), eigenkapital=rnd.uniform(0, 300_000),
+            sanierung_sofort=rnd.choice([0, 25_000, 100_000]), eigenkapital=rnd.choice([rnd.uniform(0, 300_000), "nebenkosten"]),
             zins=rnd.uniform(0.01, 0.07), tilgung=rnd.uniform(0.01, 0.04), bewirtschaftung_quote=rnd.uniform(0.1, 0.35),
             instandhaltung_eur_m2_jahr=rnd.choice([0, 8, 15]), ziel_cashflow_monat=rnd.choice([0, 100, 300]),
             tilgung_einrechnen=rnd.random() < 0.5,
