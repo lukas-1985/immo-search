@@ -7,13 +7,10 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 ## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
 
 - **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 95 Tests grün. Phase 1 ist vorbereitet (Anleitung, `setup.ps1`, `scripts/check_fredy.py`).
-- **Pausiert bei Phase 1:** Der Mini-PC war eine QEMU-VM unter Proxmox ohne verschachtelte Virtualisierung, deshalb lief Docker Desktop/WSL 2 dort nicht. Der Nutzer installiert ihn **neu mit Windows 11 direkt auf der Hardware** (ohne Proxmox).
-- **Nächster Schritt:** auf dem neu installierten Mini-PC
-  1. Prüfen, ob die Virtualisierung aktiv ist: `(Get-CimInstance Win32_Processor).VirtualizationFirmwareEnabled` und `wsl --status`. Falls nein: VT-x/AMD-V im BIOS einschalten.
-  2. Laufwerke und Repo-Pfad prüfen. Die Anleitung geht von `D:\immo-search` und `D:\docker\fredy` aus. `setup.ps1 -DataDir` ist anpassbar.
-  3. [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md) abarbeiten. Docker Desktop installieren (`winget install -e --id Docker.DockerDesktop`) und Fredy über `docker\fredy\setup.ps1` starten.
-  4. **Der Nutzer erledigt selbst:** Fredy-Login, Passwort ändern (danach in `.env`), Analytics ablehnen, Jobs mit Such-URLs anlegen, Platzhalter im Profil füllen. Claude gibt keine Passwörter ein.
-  5. `uv run python scripts/check_fredy.py` ausführen, Bericht und `data/fredy_check/*.json` auswerten, `fredy_client.py` an die echten Felder anpassen, offene Punkte 1–7 in der Tabelle der Anleitung eintragen.
+- **Phase 1 läuft:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy` (Standard in `setup.ps1`). Fredy 29.3.0 läuft unter http://localhost:9998.
+- **Nächster Schritt:**
+  1. **Der Nutzer erledigt selbst:** Fredy-Login, Passwort ändern (danach in `.env`), Analytics ablehnen, Jobs mit Such-URLs anlegen, Platzhalter im Profil füllen. Claude gibt keine Passwörter ein. Anleitung: [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitte 1 und 4–5.
+  2. `uv run python scripts/check_fredy.py` ausführen, Bericht und `data/fredy_check/*.json` auswerten, `fredy_client.py` an die echten Felder anpassen, offene Punkte 1–7 in der Tabelle der Anleitung eintragen.
 - **Danach:** Phase 5 (Telegram + E-Mail-Digest), Phase 6 (`run.ps1`, Aufgabenplanung, `.claude/settings.json` mit enger Positivliste), dann Phasen 7–8b (Server, MCP, Simulation).
 
 ## Arbeitsweise

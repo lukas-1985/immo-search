@@ -1,7 +1,7 @@
 # Fredy einrichten bzw. aktualisieren (Phase 1).
-#   powershell -ExecutionPolicy Bypass -File docker\fredy\setup.ps1 [-DataDir D:\docker\fredy]
+#   powershell -ExecutionPolicy Bypass -File docker\fredy\setup.ps1 [-DataDir C:\E\docker\fredy]
 param(
-    [string]$DataDir = "D:\docker\fredy"
+    [string]$DataDir = "C:\E\docker\fredy"
 )
 $ErrorActionPreference = "Stop"
 $compose = Join-Path $PSScriptRoot "docker-compose.yml"

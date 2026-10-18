@@ -37,12 +37,12 @@ docker version
 ## 3. Projekt klonen und Fredy starten
 
 ```powershell
-git clone <repo-url> D:\immo-search
-cd D:\immo-search
+git clone <repo-url> C:\E\ai-workspace\immo-search
+cd C:\E\ai-workspace\immo-search
 powershell -ExecutionPolicy Bypass -File docker\fredy\setup.ps1
 ```
 
-`setup.ps1` legt `D:\docker\fredy\conf` und `D:\docker\fredy\db` an, startet den Container (fester Image-Tag, `restart: unless-stopped`) und wartet, bis die Oberfläche unter http://localhost:9998 antwortet.
+`setup.ps1` legt `C:\E\docker\fredy\conf` und `C:\E\docker\fredy\db` an, startet den Container (fester Image-Tag, `restart: unless-stopped`) und wartet, bis die Oberfläche unter http://localhost:9998 antwortet.
 
 > **LAN-Zugriff:** Die Compose-Datei bindet Fredy nur an `127.0.0.1`. Das reicht, weil `immo-search` auf demselben Rechner läuft. Fredys Oberfläche brauchst du nur zur Fehlersuche (z. B. per Remote Desktop).
 
@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File docker\fredy\setup.ps1
 
 Öffne http://localhost:9998 und melde dich mit `admin` / `admin` an.
 
-1. **Passwort ändern** (Benutzerverwaltung). Danach in `D:\immo-search\.env` eintragen:
+1. **Passwort ändern** (Benutzerverwaltung). Danach in `C:\E\ai-workspace\immo-search\.env` eintragen:
    ```
    FREDY_USERNAME=admin
    FREDY_PASSWORD=<neues Passwort>

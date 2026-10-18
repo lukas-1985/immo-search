@@ -1,5 +1,5 @@
 # Fredy auf dem Mini-PC (Phase 1). Fester Image-Tag, kein latest/master.
-# Vor einem Update: Release Notes lesen, Backup von D:\docker\fredy anlegen.
+# Vor einem Update: Release Notes lesen, Backup von C:\E\docker\fredy anlegen.
 # Start: docker\fredy\setup.ps1 (legt die Ordner an und prüft, dass Fredy antwortet)
 services:
   fredy:

@@ -633,7 +633,7 @@ Claude Desktop: Remote-Connectors laufen über die Cloud und erreichen das Heimn
 |---|---|---|
 | Fredy | Docker Desktop (Container), Port 9998 nur lokal bzw. im LAN | Docker-Autostart + `restart: unless-stopped` |
 | Fredys DB | Container-Volume, wird nur über Fredys API gelesen | – |
-| Python 3.12 + `.venv` | Windows, z. B. `D:\immo-search` | – |
+| Python 3.12 + `.venv` | Windows, z. B. `C:\E\ai-workspace\immo-search` | – |
 | `data\immo.db` | Windows-Dateisystem (NTFS), WAL-Modus | – |
 | `immo-server` (Uvicorn, Port 8710) | Windows-Prozess im Benutzerkonto | Aufgabenplanung „bei Anmeldung“, Neustart bei Absturz |
 | Läufe (`run.ps1` → `claude -p "/immo-analyse …"`) | Windows-Prozess im selben Benutzerkonto | Aufgabenplanung (Zeitplan) bzw. Job-Runner des Servers |
@@ -646,7 +646,7 @@ Windows 11
 │                                                        │
 └─ Benutzerkonto                                         │
    ├─ immo-server (:8710)  ──┐                           │
-   ├─ run.ps1 → claude -p ───┼─► D:\immo-search\data\immo.db
+   ├─ run.ps1 → claude -p ───┼─► C:\E\ai-workspace\immo-search\data\immo.db
    └─ scripts\*.py ──────────┘──────────────────────────┘
 ```
 
@@ -658,14 +658,14 @@ Windows 11
 **Absicherung des unbeaufsichtigten Claude-Tasks** (läuft ohne Container-Abschottung):
 - `.claude/settings.json` mit einer engen Positivliste: Lesen im Projekt, `python scripts/*.py`, Schreiben nur in `data/`. Alles andere ist verboten (`deny`), kein Netzzugriff außer über die Skripte.
 - `run.ps1` startet Claude immer im Projektordner, mit Zeitlimit und Protokoll jedes Laufs.
-- Optional, sicherer: ein eigenes Windows-Standardkonto „immo“ ohne Admin-Rechte für Server, Läufe und eine eigene Claude-Anmeldung (dann per `claude setup-token`). Dieses Konto hat nur Zugriff auf `D:\immo-search`.
+- Optional, sicherer: ein eigenes Windows-Standardkonto „immo“ ohne Admin-Rechte für Server, Läufe und eine eigene Claude-Anmeldung (dann per `claude setup-token`). Dieses Konto hat nur Zugriff auf `C:\E\ai-workspace\immo-search`.
 
 ### 11.2 Weitere Betriebsthemen
 
 | Thema | Umsetzung |
 |---|---|
 | Docker | Docker Desktop (WSL2), Autostart beim Systemstart. Läuft nur mit angemeldetem Benutzer, deshalb automatische Anmeldung mit gesperrtem Bildschirm einrichten. Energiesparen und Ruhezustand deaktivieren. |
-| Fredy | `docker compose` mit festem Image-Tag (kein `latest`) und `/db` als Bind-Mount, z. B. `D:\docker\fredy\db` |
+| Fredy | `docker compose` mit festem Image-Tag (kein `latest`) und `/db` als Bind-Mount, z. B. `C:\E\docker\fredy\db` |
 | Fredy absichern | Nur im LAN erreichbar, Admin-Passwort ändern, Analytics-Ping prüfen und deaktivieren |
 | Abhängigkeiten | in `pyproject.toml`, feste Versionen (Lock-Datei) |
 | Tailscale | Auf dem Mini-PC, Handy und Laptop. MagicDNS-Name, z. B. `immo-minipc` |
