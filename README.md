@@ -1,6 +1,6 @@
 # immo-search
 
-Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN.md](PLAN.md).
+Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN.md](PLAN.md). Aktueller Stand und nächster Schritt: [CLAUDE.md](CLAUDE.md).
 
 ## Stand
 

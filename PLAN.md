@@ -682,7 +682,9 @@ Windows 11
 ```
 immo-search/
   PLAN.md
+  CLAUDE.md                       ← Einstieg für neue Claude-Sitzungen: Stand, nächster Schritt, Konventionen
   README.md
+  docs/SETUP-MINIPC.md            ← Einrichtung Phase 1
   pyproject.toml
   docker/
     fredy/docker-compose.yml
@@ -729,6 +731,18 @@ immo-search/
 | **9 – Ausbau** (optional) | Karte (Leaflet/OSM), Lernen aus deinem Status-Verlauf (Gewichte vorschlagen), weitere KPIs (Mietpotenzial mit Mietspiegel), weitere Portale/Profile | nach Bedarf |
 
 > Die Phasen 7–8 bauen auf der DB aus den Phasen 2–4 auf. Mit einfachen Ansichten kann Phase 7 auch parallel zu 5–6 entstehen.
+
+### 13.1 Stand der Umsetzung (18.10.2026)
+
+| Phase | Stand | Nachweis / Anmerkung |
+|---|---|---|
+| 1 | **vorbereitet, pausiert** | Anleitung `docs/SETUP-MINIPC.md`, `docker/fredy/setup.ps1` (Fredy 29.3.0), Diagnose `scripts/check_fredy.py`. Pausiert, weil der Mini-PC eine QEMU-VM ohne verschachtelte Virtualisierung war und Docker Desktop nicht lief. Er wird neu mit Windows 11 direkt auf der Hardware installiert. |
+| 2 | fertig | Tests: Sync idempotent, URL-Normalisierung, `fetch_filter` je Profil, Preisverlauf, entfernt/reaktiviert, fehlerhafter Job markiert nichts als entfernt. Gegen ein echtes Fredy noch **nicht** geprüft. |
+| 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Geprüft nur an 12 **selbst geschriebenen** Testanzeigen (`tests/fixtures/mfh_anzeigen.json`), mit echten Anzeigen erneut messen. |
+| 4 | fertig | 5 Beispiele gegen Handrechnung (`tests/test_finance.py`). Ziel-Cashflow beim empfohlenen Preis exakt, 500 Zufallsfälle. |
+| 5–9 | offen | Nächste Phase nach Abschluss von Phase 1: 5 (Benachrichtigung & Digest). |
+
+Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), danach die Doku zur Übergabe.
 
 ---
 
