@@ -1,0 +1,64 @@
+# Globale Einstellungen. Geheimnisse stehen in .env, nicht hier.
+fredy:
+  base_url: "http://localhost:9998"
+  access: api            # api | sqlite
+  sqlite_path: "D:/docker/fredy/db/listings.db"   # nur für access: sqlite (read-only)
+  page_size: 200
+  timeout_s: 30
+
+database:
+  path: "data/immo.db"
+
+server:
+  bind: ["127.0.0.1"]    # später ergänzen: LAN- und Tailscale-Adresse – PLATZHALTER
+  port: 8710
+  public_base_url: "http://immo-minipc:8710"
+  mcp:
+    enabled: true
+    write_tools: [set_status, add_note, start_run, reextract_listing, send_digest_now]
+
+notify:
+  telegram: { enabled: true }
+  email:    { enabled: true, to: null }   # PLATZHALTER: deine Adresse
+
+schedule:
+  run:    { every_hours: 3, from: "07:00", to: "22:00" }
+  digest: { at: "07:30" }
+
+workflow:
+  status: [neu, gesichtet, interessant, angefragt, besichtigt, angebot_abgegeben, gekauft]
+  end_status: [abgelehnt, verworfen]
+  wieder_interessant_preissenkung: 0.10
+
+# Standard-Finanzannahmen; Profile überschreiben einzelne Werte
+finance_defaults:
+  zins: 0.038
+  tilgung: 0.02
+  notar_grundbuch: 0.02
+  makler_default: 0.0357
+  bewirtschaftung_quote: 0.20
+  instandhaltung_eur_m2_jahr: 0
+  sanierung_sofort: 0
+
+grunderwerbsteuer:       # Stand regelmäßig prüfen
+  BW: 0.05
+  BY: 0.035
+  BE: 0.06
+  BB: 0.065
+  HB: 0.055
+  HH: 0.055
+  HE: 0.06
+  MV: 0.06
+  NI: 0.05
+  NW: 0.065
+  RP: 0.05
+  SL: 0.065
+  SN: 0.055
+  ST: 0.05
+  SH: 0.065
+  TH: 0.05
+
+steuern:
+  grenzsteuersatz: 0.42  # PLATZHALTER
+  gebaeudeanteil: 0.75
+  afa_satz: auto

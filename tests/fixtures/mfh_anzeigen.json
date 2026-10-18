@@ -1,0 +1,122 @@
+[
+  {
+    "nr": 1,
+    "provider": "immoscout",
+    "titel": "Gepflegtes 6-Parteienhaus in ruhiger Lage",
+    "adresse": "Lindenweg 4, 80995 München",
+    "preis": 1150000, "flaeche": 430, "baujahr": 1962,
+    "beschreibung": "Objektbeschreibung\nDas Mehrfamilienhaus wurde 1962 errichtet und laufend instand gehalten.\n\nMieteinnahmen pro Jahr: 52.800 €\nAnzahl Wohneinheiten: 6\nGrundstücksfläche: 780 m²\nHeizungsart: Zentralheizung\nWesentliche Energieträger: Gas\nObjektzustand: Gepflegt\n\nSanierungen: Dach 2015 neu eingedeckt, Fenster 2008 erneuert, Heizung 2012.\n\nProvision\nKäuferprovision: 3,57 % inkl. MwSt. vom Kaufpreis",
+    "erwartet": {"jahresnettokaltmiete_ist": 52800, "wohneinheiten": 6, "grundstueck_m2": 780, "provision": 0.0357, "zustand": "gepflegt"},
+    "regel": {"jahresnettokaltmiete_ist": 52800, "wohneinheiten": 6, "grundstueck_m2": 780, "provision": 0.0357, "heizungsart": "Zentralheizung", "zustand": "gepflegt"}
+  },
+  {
+    "nr": 2,
+    "provider": "kleinanzeigen",
+    "titel": "MFH mit 4 Wohnungen – Kapitalanlage",
+    "adresse": "85354 Freising",
+    "preis": 690000, "flaeche": 310, "baujahr": 1974,
+    "beschreibung": "Verkaufe unser Mehrfamilienhaus in Freising. Das Haus verfügt über 4 Wohnungen, die aktuell eine monatliche Nettokaltmiete von insgesamt 3.150 € erzielen. Alle Mieter zahlen pünktlich. Ölheizung von 1998, Fenster teilweise erneuert. Privatverkauf, keine Maklerprovision.",
+    "erwartet": {"jahresnettokaltmiete_ist": 37800, "wohneinheiten": 4, "provision": 0},
+    "regel": {"wohneinheiten": 4, "provision": 0}
+  },
+  {
+    "nr": 3,
+    "provider": "immowelt",
+    "titel": "Mehrfamilienhaus mit 8 Wohneinheiten und Mietsteigerungspotenzial",
+    "adresse": "Gartenstr. 12, 80686 München",
+    "preis": 1690000, "flaeche": 560, "baujahr": 1958,
+    "beschreibung": "Das Objekt umfasst 8 Wohneinheiten, davon 1 leerstehend.\nJahresnettokaltmiete (Ist): 41.400 €\nJahresnettokaltmiete (Soll): 46.200 €\nDie Mieten liegen deutlich unter dem örtlichen Mietspiegel. Kaufpreis VB.",
+    "erwartet": {"jahresnettokaltmiete_ist": 41400, "jahresnettokaltmiete_soll": 46200, "wohneinheiten": 8, "leerstand_einheiten": 1, "verhandlungsbasis": true},
+    "regel": {"jahresnettokaltmiete_ist": 41400, "jahresnettokaltmiete_soll": 46200, "wohneinheiten": 8, "verhandlungsbasis": true}
+  },
+  {
+    "nr": 4,
+    "provider": "immoscout",
+    "titel": "Renditeobjekt: MFH im Erbbaurecht",
+    "adresse": "Am Anger 3, 80997 München",
+    "preis": 540000, "flaeche": 390, "baujahr": 1970,
+    "beschreibung": "Attraktives Renditeobjekt mit fünf Wohnungen. Das Grundstück steht im Erbbaurecht (Erbbauzins 2.400 € p.a., Laufzeit bis 2071). Mieteinnahmen p.a. ca. 36 TEUR. Die Hausverwaltung ist bis Ende 2027 beauftragt.",
+    "erwartet": {"jahresnettokaltmiete_ist": 36000, "wohneinheiten": 5, "erbpacht": true},
+    "regel": {"jahresnettokaltmiete_ist": 36000, "erbpacht": true}
+  },
+  {
+    "nr": 5,
+    "provider": "kleinanzeigen",
+    "titel": "5-Parteienhaus für Kapitalanleger",
+    "adresse": "80999 München",
+    "preis": 980000, "flaeche": 400, "baujahr": 1965,
+    "beschreibung": "Ideal für Kapitalanleger. Voll vermietetes 5-Parteienhaus in guter Lage. Mietaufstellung und Energieausweis auf Anfrage. Besichtigung nach Vereinbarung.",
+    "erwartet": {"jahresnettokaltmiete_ist": null, "wohneinheiten": 5},
+    "regel": {"wohneinheiten": 5}
+  },
+  {
+    "nr": 6,
+    "provider": "immowelt",
+    "titel": "Denkmalgeschütztes Jugendstil-MFH",
+    "adresse": "Kaiserplatz 9, 80803 München",
+    "preis": 2450000, "flaeche": 690, "baujahr": 1906,
+    "beschreibung": "Das denkmalgeschützte Jugendstil-Mehrfamilienhaus mit 7 Wohnungen wurde 2010 aufwendig saniert.\nMieteinnahmen jährlich: 61.200 €\nDas Haus ist bereits nach WEG aufgeteilt.\nProvisionsfrei für den Käufer.",
+    "erwartet": {"jahresnettokaltmiete_ist": 61200, "wohneinheiten": 7, "denkmalschutz": true, "aufgeteilt_weg": true, "provision": 0},
+    "regel": {"jahresnettokaltmiete_ist": 61200, "wohneinheiten": 7, "denkmalschutz": true, "aufgeteilt_weg": true, "provision": 0}
+  },
+  {
+    "nr": 7,
+    "provider": "immoscout",
+    "titel": "Solides Mehrfamilienhaus, voll vermietet",
+    "adresse": "Birkenallee 21, 80939 München",
+    "preis": 820000, "flaeche": 350, "baujahr": 1968,
+    "beschreibung": "Anzahl Wohneinheiten: 5\nMonatliche Mieteinnahmen (netto kalt): 2.890 €\nBaujahr Heizung: 2016\nZustand: Modernisiert",
+    "erwartet": {"jahresnettokaltmiete_ist": 34680, "wohneinheiten": 5, "heizung_baujahr": 2016},
+    "regel": {"jahresnettokaltmiete_ist": 34680, "wohneinheiten": 5, "heizung_baujahr": 2016, "zustand": "gepflegt"}
+  },
+  {
+    "nr": 8,
+    "provider": "immowelt",
+    "titel": "Wohn- und Geschäftshaus in der Ortsmitte",
+    "adresse": "Marktplatz 2, 80331 München",
+    "preis": 1290000, "flaeche": 480, "baujahr": 1955,
+    "beschreibung": "Im Haus befinden sich 3 Wohneinheiten und 1 Gewerbeeinheit (Bäckerei, langjähriger Mieter). Die Gesamtmiete beträgt netto kalt 44.500 € im Jahr. Teilunterkellert, Gas-Etagenheizungen.",
+    "erwartet": {"jahresnettokaltmiete_ist": 44500, "wohneinheiten": 3, "gewerbeeinheiten": 1},
+    "regel": {"wohneinheiten": 3, "gewerbeeinheiten": 1}
+  },
+  {
+    "nr": 9,
+    "provider": "kleinanzeigen",
+    "titel": "Sanierungsbedürftiges MFH, 6 WE",
+    "adresse": "80993 München",
+    "preis": 610000, "flaeche": 420, "baujahr": 1951,
+    "beschreibung": "Sanierungsbedürftiges MFH, 6 WE, teilweise Leerstand (2 Einheiten).\nAktuelle Ist-Miete: 28.800 €/Jahr\nFeuchtigkeit im Keller, Dach muss erneuert werden. Ein Mieter ist mit zwei Monatsmieten im Rückstand.",
+    "erwartet": {"jahresnettokaltmiete_ist": 28800, "wohneinheiten": 6, "leerstand_einheiten": 2, "zustand": "sanierungsstau"},
+    "regel": {"jahresnettokaltmiete_ist": 28800, "wohneinheiten": 6}
+  },
+  {
+    "nr": 10,
+    "provider": "immoscout",
+    "titel": "MFH mit Entwicklungspotenzial",
+    "adresse": "Feldstr. 7, 80689 München",
+    "preis": 1390000, "flaeche": 520, "baujahr": 1964,
+    "beschreibung": "Mehrfamilienhaus in gefragter Lage. Bei Vollvermietung sind Mieteinnahmen von ca. 54.000 € p.a. möglich (derzeit 2 Wohnungen leer). Das Dach wurde 2019 gedämmt. Festpreis.",
+    "erwartet": {"jahresnettokaltmiete_ist": null, "jahresnettokaltmiete_soll": 54000, "leerstand_einheiten": 2, "verhandlungsbasis": false},
+    "regel": {"verhandlungsbasis": false}
+  },
+  {
+    "nr": 11,
+    "provider": "immowelt",
+    "titel": "Kapitalanlage: 5 WE nahe S-Bahn",
+    "adresse": "Bahnhofstr. 30, 80992 München",
+    "preis": 925000, "flaeche": 365, "baujahr": 1972,
+    "beschreibung": "Anzahl Wohneinheiten: 5\nNettokaltmiete p.a.: 39.960 €\nGrundstück ca. 610 m²\nHeizung: Fernwärme\nKaufpreis VB",
+    "erwartet": {"jahresnettokaltmiete_ist": 39960, "wohneinheiten": 5, "grundstueck_m2": 610, "verhandlungsbasis": true},
+    "regel": {"jahresnettokaltmiete_ist": 39960, "wohneinheiten": 5, "grundstueck_m2": 610, "heizungsart": "Fernwärme", "verhandlungsbasis": true}
+  },
+  {
+    "nr": 12,
+    "provider": "kleinanzeigen",
+    "titel": "Dreifamilienhaus – kein Erbbaurecht",
+    "adresse": "80995 München",
+    "preis": 590000, "flaeche": 260, "baujahr": 1980,
+    "beschreibung": "Dreifamilienhaus, alle Wohnungen vermietet. Jahresmiete 31.200 € (Faktor 19). Kein Erbbaurecht, kein Denkmalschutz. Wärmepumpe seit 2021.",
+    "erwartet": {"jahresnettokaltmiete_ist": 31200, "wohneinheiten": 3, "erbpacht": false, "denkmalschutz": false},
+    "regel": {"jahresnettokaltmiete_ist": 31200, "erbpacht": false, "denkmalschutz": false}
+  }
+]

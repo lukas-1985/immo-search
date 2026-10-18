@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Extraktion Mehrfamilienhaus",
+  "description": "Ein Ergebnis je Angebot. Nur Felder angeben, die im Text belegt sind; nicht gefundene Felder weglassen.",
+  "x-schema-version": 1,
+  "type": "object",
+  "required": ["listing_id", "beschreibung_hash", "felder"],
+  "additionalProperties": false,
+  "properties": {
+    "listing_id": { "type": "integer" },
+    "beschreibung_hash": { "type": "string", "description": "unverändert aus der pending-Ausgabe übernehmen" },
+    "felder": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wohneinheiten":             { "$ref": "#/$defs/anzahl" },
+        "gewerbeeinheiten":          { "$ref": "#/$defs/anzahl" },
+        "leerstand_einheiten":       { "$ref": "#/$defs/anzahl" },
+        "jahresnettokaltmiete_ist":  { "$ref": "#/$defs/euro_jahr" },
+        "jahresnettokaltmiete_soll": { "$ref": "#/$defs/euro_jahr" },
+        "provision": {
+          "description": "Käuferprovision als Anteil inkl. MwSt. (3,57 % → 0.0357); provisionsfrei → 0",
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": { "wert": { "type": "number", "minimum": 0, "maximum": 0.15 } },
+          "required": ["wert"], "unevaluatedProperties": false
+        },
+        "grundstueck_m2": {
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": { "wert": { "type": "number", "exclusiveMinimum": 0 } },
+          "required": ["wert"], "unevaluatedProperties": false
+        },
+        "erbpacht":          { "$ref": "#/$defs/janein" },
+        "denkmalschutz":     { "$ref": "#/$defs/janein" },
+        "aufgeteilt_weg":    { "$ref": "#/$defs/janein" },
+        "verhandlungsbasis": { "$ref": "#/$defs/janein" },
+        "heizungsart": {
+          "description": "z. B. Gas-Zentralheizung, Etagenheizung Gas, Fernwärme, Wärmepumpe, Öl, Nachtspeicher",
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": { "wert": { "type": "string", "minLength": 2, "maxLength": 60 } },
+          "required": ["wert"], "unevaluatedProperties": false
+        },
+        "heizung_baujahr": { "$ref": "#/$defs/jahr_feld" },
+        "sanierungen": {
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": {
+            "wert": {
+              "type": "array", "maxItems": 20,
+              "items": {
+                "type": "object", "required": ["bauteil"], "additionalProperties": false,
+                "properties": {
+                  "bauteil": { "type": "string", "minLength": 2, "maxLength": 60 },
+                  "jahr": { "type": ["integer", "null"], "minimum": 1900, "maximum": 2035 }
+                }
+              }
+            }
+          },
+          "required": ["wert"], "unevaluatedProperties": false
+        },
+        "zustand": {
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": { "wert": { "enum": ["neuwertig", "gepflegt", "renovierungsbeduerftig", "sanierungsstau"] } },
+          "required": ["wert"], "unevaluatedProperties": false
+        },
+        "risiken": {
+          "description": "Auffälligkeiten aus dem Text, je Eintrag kurz und sachlich",
+          "allOf": [{ "$ref": "#/$defs/meta" }],
+          "properties": {
+            "wert": { "type": "array", "maxItems": 10, "items": { "type": "string", "minLength": 3, "maxLength": 200 } }
+          },
+          "required": ["wert"], "unevaluatedProperties": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "required": ["konfidenz", "belegstelle"],
+      "properties": {
+        "konfidenz": { "enum": ["hoch", "mittel", "niedrig"] },
+        "belegstelle": {
+          "type": "string", "minLength": 3, "maxLength": 400,
+          "description": "wörtlicher Textausschnitt; mehrere Stellen mit ' … ' trennen"
+        },
+        "rechenweg": { "type": "string", "maxLength": 300, "description": "Pflicht, wenn der Wert umgerechnet wurde" }
+      }
+    },
+    "anzahl": {
+      "allOf": [{ "$ref": "#/$defs/meta" }],
+      "properties": { "wert": { "type": "integer", "minimum": 0, "maximum": 500 } },
+      "required": ["wert"], "unevaluatedProperties": false
+    },
+    "euro_jahr": {
+      "description": "Euro pro Jahr, netto kalt. Monatswerte × 12 und Rechenweg angeben.",
+      "allOf": [{ "$ref": "#/$defs/meta" }],
+      "properties": { "wert": { "type": "number", "exclusiveMinimum": 0 } },
+      "required": ["wert"], "unevaluatedProperties": false
+    },
+    "janein": {
+      "allOf": [{ "$ref": "#/$defs/meta" }],
+      "properties": { "wert": { "type": "boolean" } },
+      "required": ["wert"], "unevaluatedProperties": false
+    },
+    "jahr_feld": {
+      "allOf": [{ "$ref": "#/$defs/meta" }],
+      "properties": { "wert": { "type": "integer", "minimum": 1900, "maximum": 2035 } },
+      "required": ["wert"], "unevaluatedProperties": false
+    }
+  }
+}

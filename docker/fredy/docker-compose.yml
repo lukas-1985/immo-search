@@ -1,0 +1,12 @@
+# Fredy auf dem Mini-PC (Phase 1). Fester Image-Tag, kein latest/master.
+# Vor einem Update: Release Notes lesen, Backup von D:\docker\fredy anlegen.
+services:
+  fredy:
+    image: ghcr.io/orangecoding/fredy:28.0.0   # bei Einrichtung auf die aktuelle Version prüfen
+    container_name: fredy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9998:9998"   # nur lokal; für LAN-Zugriff die LAN-IP davor setzen
+    volumes:
+      - D:/docker/fredy/conf:/conf
+      - D:/docker/fredy/db:/db

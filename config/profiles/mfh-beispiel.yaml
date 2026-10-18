@@ -1,0 +1,48 @@
+id: mfh-beispiel
+name: "MFH Region X (Beispiel)"
+active: true
+objektart: mehrfamilienhaus
+
+# Stufe 1 – zugehörige Fredy-Jobs (Such-URLs werden in Fredy gepflegt)
+fredy:
+  jobs: ["MFH Region X – IS24", "MFH Region X – Immowelt", "MFH Region X – Kleinanzeigen"]
+  # alternativ: job_prefix: "MFH Region X"
+
+# Stufe 2 – Vorfilter beim Datenholen. null = Kriterium nicht gesetzt.
+fetch_filter:
+  location:
+    plz_prefix: []                 # PLATZHALTER, z. B. ["80", "81"]
+    orte: []                       # PLATZHALTER, z. B. ["Ort A", "Ort B"]
+    umkreis: null                  # PLATZHALTER, z. B. { lat: 48.1, lon: 11.5, km: 30 }
+    on_missing: keep               # keep | drop – wenn das Angebot keine Ortsangabe hat
+  preis:       { min: null, max: null }   # PLATZHALTER (€)
+  wohnflaeche: { min: null, max: null }   # PLATZHALTER (m²)
+  zimmer:      { min: null, max: null }
+  baujahr:     { min: null, max: null }
+  providers:   [immoscout, immowelt, kleinanzeigen]
+  exclude_keywords: ["Zwangsversteigerung", "Tausch"]
+
+# Stufe 3 – Ausschlusskriterien (auch extrahierte Felder)
+hard_filter:
+  - { field: erbpacht,        op: "==", value: false, on_missing: keep }
+  - { field: wohneinheiten,   op: ">=", value: 3,     on_missing: keep }
+  - { field: denkmalschutz,   op: "==", value: false, on_missing: keep }
+  - { field: bruttorendite,   op: ">=", value: 0.04,  on_missing: keep }
+
+scoring:
+  kpis:
+    bruttorendite:
+      weight: 1.0
+      normalize: { type: linear, min: 0.04, max: 0.08 }
+      on_missing: estimate
+  alert_threshold: 75
+  digest_top_n: 10
+
+finance:
+  bundesland: null             # PLATZHALTER, z. B. BY
+  eigenkapital: 0              # PLATZHALTER (€)
+  miete_schaetzung_eur_m2: null   # PLATZHALTER – für on_missing: estimate
+
+kaufpreisempfehlung:
+  ziel_cashflow_monat: 0
+  tilgung_einrechnen: true
