@@ -760,7 +760,7 @@ Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Ph
    - IS24 lädt das Exposé nach. Was liefern Immowelt und Kleinanzeigen?
    - Ist die Beschreibung vollständig oder gekürzt? Davon hängt die Qualität der Extraktion ab.
 4. **Such-URLs für MFH:** Funktioniert die Such-URL für Mehrfamilienhäuser in Fredys IS24-Übersetzer? Es gab in der Vergangenheit Fehler „Real estate type not found“ bei manchen Objektarten.
-5. **Duplikate über Portale:** Liefert Fredy eine Duplikat-Kennung? In der Tabelle `listings` ist keine zu sehen. Bis das geklärt ist, bildet jedes Angebot seine eigene `duplicate_group`. Sonst eine eigene Erkennung (Adresse/Koordinaten + Fläche + Preis) in `sync`.
+5. **Duplikate über Portale:** Liefert Fredy eine Duplikat-Kennung? In der Tabelle `listings` ist keine zu sehen. Bis das geklärt ist, bildet jedes Angebot seine eigene `duplicate_group`. Sonst eine eigene Erkennung (Adresse/Koordinaten + Fläche + Preis) in `sync`. **Geklärt 18.10.2026:** Fredy liefert keine Kennung; umgesetzt in `duplicates.py` (gleiche PLZ, Titel ≥ 90 % ähnlich, Preis ± 5 %, Fläche ± 2 %, verschiedene Portale).
 6. **Objektart in den Daten:** Kann `sync` die Objektart und den Job je Angebot sicher zuordnen? Davon hängt die Zuordnung zum Profil ab.
 7. **Ortsdaten:** Sind PLZ und Koordinaten in Fredy-Daten verlässlich vorhanden? Sonst werden sie per Geocoding (OSM/Nominatim, sparsam und zwischengespeichert) ergänzt.
 8. **Claude ohne Oberfläche:** Hält die normale Anmeldung im unbeaufsichtigten Betrieb (Aufgabenplanung bei gesperrtem Bildschirm)? Falls nein: `claude setup-token` als Rückfallebene. Außerdem: Verhalten bei erreichtem Nutzungskontingent (der Lauf soll sauber abbrechen und beim nächsten Mal weitermachen).

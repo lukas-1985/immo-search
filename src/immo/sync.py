@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from .config import Config, Profile
 from .db import now_iso
+from .duplicates import gruppiere_duplikate
 from .filters import fetch_filter_reason
 from .fredy_client import FredyClient, FredyError, resolve_jobs
 from .models import FredyListing
@@ -35,6 +36,7 @@ class SyncStats:
     entfernt: int = 0
     reaktiviert: int = 0
     inaktiv_ignoriert: int = 0
+    duplikate: int = 0  # Angebote in Duplikatgruppen über Portale (gesamte DB)
     gefiltert: Counter[str] = field(default_factory=Counter)
     fehler: list[str] = field(default_factory=list)
 
@@ -61,7 +63,7 @@ def _insert(conn: sqlite3.Connection, l: FredyListing, ts: str) -> int:
          json.dumps(l.bilder, ensure_ascii=False), ts, ts),
     )
     listing_id = cur.lastrowid
-    # Duplikaterkennung über Portale folgt später; bis dahin bildet jedes Angebot eine eigene Gruppe.
+    # Vorläufig eigene Gruppe; gruppiere_duplikate() führt am Ende des Syncs über Portale zusammen.
     conn.execute("UPDATE listing SET duplicate_group = ? WHERE id = ?", (listing_id, listing_id))
     if l.preis is not None:
         conn.execute("INSERT INTO price_history (listing_id, datum, preis) VALUES (?, ?, ?)", (listing_id, ts, l.preis))
@@ -183,6 +185,9 @@ def run_sync(conn: sqlite3.Connection, client: FredyClient, config: Config, only
         start = now_iso()
         results[profile.id] = (start, sync_profile(conn, client, profile, jobs_all, start, seen, ok_jobs))
     _mark_removed(conn, seen, ok_jobs, {pid: s for pid, (_, s) in results.items()})
+    duplikate = gruppiere_duplikate(conn)
+    for _, stats in results.values():
+        stats.duplikate = duplikate
 
     for profile_id, (start, stats) in results.items():
         conn.execute(

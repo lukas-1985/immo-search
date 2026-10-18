@@ -59,6 +59,14 @@ def test_wohneinheiten_bestand_statt_vermieteter_teil():
     assert extract_rules(titel, text, SCHEMA)["wohneinheiten"]["wert"] == 8
 
 
+def test_provision_zzgl_mwst_wird_brutto():
+    # echte Anzeige KL, 18.10.2026
+    item = extract_rules(None, "- Käuferprovision: 3,57 % zzgl. gesetzl. MwSt.", SCHEMA)["provision"]
+    assert item["wert"] == 0.0425 and item["rechenweg"] == "3,57 % zzgl. 19 % MwSt. = 4,25 %"
+    assert extract_rules(None, "Provision für Käufer: 3,57% inkl. MwSt.", SCHEMA)["provision"]["wert"] == 0.0357
+    assert extract_rules(None, "Käuferprovision 3 % zuzüglich der gesetzlichen Mehrwertsteuer", SCHEMA)["provision"]["wert"] == 0.0357
+
+
 @pytest.mark.parametrize("titel, text", [
     # echte Anzeigen KL, 18.10.2026
     ("Junges Wohnen mit viel individuellem Spielraum. FamilyStyle 17.01 S", "Projektiertes Ausbauhaus mit Bodenplatte."),

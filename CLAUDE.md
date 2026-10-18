@@ -6,7 +6,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 ## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
 
-- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 106 Tests grün.
+- **Fertig:** Phasen 2–4: Sync, Extraktion, Scoring mit Kaufpreisempfehlung. 111 Tests grün.
 - **Erster echter Lauf (18.10.2026):** 48 Angebote in `data/immo.db` (sync zweimal, 2. Lauf neu = 0), Regeln + Claude-Extraktion für alle 48 (0 abgelehnt), `score.py` gelaufen. Extraktionsdateien unter `data/extraction/`.
 - **Phase 1 fast fertig:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy`. Fredy 29.3.0 läuft unter http://localhost:9998. Passwort steht in `.env`.
   - Aktives Profil `mfh-kl` (Kaiserslautern, 5 km, 300 000–2 000 000 €, RP, EK = nur Nebenkosten, Miete 9 €/m²). Fredy-Jobs „MFH KL – IS24/Immowelt/Kleinanzeigen“, Analytics aus, Arbeitszeit 07–22 Uhr, Intervall 60 Min., `provider_details` für alle drei Portale.
@@ -16,8 +16,8 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
   2. Erkenntnisse aus dem ersten Lauf:
      - Erledigt: **Bauprojekte** (Fertighaus-/Ausbauhaus-Angebote) über das Schemafeld `bauprojekt` (Regel + Claude) und `hard_filter bauprojekt == false` ausgeschlossen, alle 8 im Bestand erkannt. Schema-Version bewusst nicht erhöht (additives, optionales Feld, sonst müsste Claude alles neu auswerten).
      - Entschieden: **Leerstand** gilt dem Nutzer grundsätzlich als positiv (Mietpotenzial). Das Ranking mit Schätzmiete bleibt, auch wenn ein leeres Haus vorn steht.
-     - Offen: **Duplikate** über Portale zusammenführen (Titel + PLZ, mind. 7 Paare im Bestand).
-     - Offen: Provision „zzgl. MwSt.“ wird als Brutto gelesen (Angebot 39: 3,57 % statt ≈ 4,25 %).
+     - Erledigt: **Duplikate** über Portale (`duplicates.py`): gleiche PLZ, Titel ≥ 90 % ähnlich, Preis ± 5 %, Fläche ± 2 %, verschiedene Portale. Läuft am Ende jedes Syncs, Gruppe = kleinste ID, Workflow-Status wandert bei Zusammenlegung mit. `ranking` zeigt je Gruppe nur das beste Angebot. Im Bestand 7 Paare, keine Fehltreffer.
+     - Erledigt: Provision „zzgl. MwSt.“ wird × 1,19 gerechnet (Regel mit Rechenweg, Hinweis im Skill). Angebot 39: 4,25 %.
   3. Nach 2–3 Tagen `check_fredy.py` und `sync.py` erneut ausführen (Anleitung, Abschnitt 7), dann Phase 1 abschließen.
 - **Danach:** Phase 5 (Telegram + E-Mail-Digest), Phase 6 (`run.ps1`, Aufgabenplanung, `.claude/settings.json` mit enger Positivliste), dann Phasen 7–8b (Server, MCP, Simulation).
 
@@ -41,7 +41,8 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 | `src/immo/config.py` | Pydantic-Modelle für `settings.yaml` und Profile, `load_config`, `finance_for` (Defaults + Profil) |
 | `src/immo/db.py` | Schema und Migrationen (`PRAGMA user_version`, derzeit v2), WAL |
 | `src/immo/fredy_client.py` | API-Client (Session-Login) und SQLite-Client (read-only), `listing_from_row`, `resolve_jobs` |
-| `src/immo/sync.py` | Sync aller Profil-Jobs, `fetch_filter` nur für neue Zuordnungen, Preisverlauf, „entfernt“ |
+| `src/immo/sync.py` | Sync aller Profil-Jobs, `fetch_filter` nur für neue Zuordnungen, Preisverlauf, „entfernt“, ruft am Ende die Duplikaterkennung |
+| `src/immo/duplicates.py` | Duplikate über Portale → `duplicate_group` (Union-Find, Workflow-Übernahme) |
 | `src/immo/filters.py` | `fetch_filter` (Stufe 2) |
 | `src/immo/extraction.py` | Schema laden, Belegstellen- und Plausibilitätsprüfung, `store_fields` mit Quellen-Rang |
 | `src/immo/parse_attrs.py` | Regel-Parser (Quelle `regel`) |
@@ -75,7 +76,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 - Heißen die Felder der API-Antwort genauso wie die DB-Spalten? `listing_from_row` liest snake_case und camelCase.
 - Liefert `/table` auch inaktive Angebote?
 - In welchem Format kommt `created_at`?
-- Gibt es eine Duplikat-Kennung über Portale? Bisher ist keine bekannt, `duplicate_group` = eigene ID.
+- Duplikat-Kennung über Portale: Fredy liefert keine (geprüft 18.10.2026), eigene Erkennung in `duplicates.py`.
 - Sind die Beschreibungen je Portal vollständig?
 
 ## Bekannte Grenzen

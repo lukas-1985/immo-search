@@ -45,7 +45,7 @@ Alle Befehle laufen im Projektordner mit `uv run python scripts/<name>.py`. Schr
   - `hoch` – ausdrücklich genannt („Jahresnettokaltmiete: 48.000 €“)
   - `mittel` – eindeutig, aber umgerechnet oder aus dem Zusammenhang („4 Wohnungen à ca. 1.000 € kalt im Monat“)
   - `niedrig` – mehrdeutig; lieber weglassen, wenn du zweifelst
-- **Zahlen normalisieren:** Euro als Zahl ohne Einheit. Monatsmieten × 12 und dann **`rechenweg`** angeben („3.150 € × 12“). Provision als Anteil (3,57 % → `0.0357`), „provisionsfrei“ → `0`.
+- **Zahlen normalisieren:** Euro als Zahl ohne Einheit. Monatsmieten × 12 und dann **`rechenweg`** angeben („3.150 € × 12“). Provision als Anteil **inkl. MwSt.** (3,57 % → `0.0357`), „provisionsfrei“ → `0`. Steht „zzgl. MwSt.“ dabei, × 1,19 rechnen und `rechenweg` angeben („3,57 % zzgl. 19 % MwSt. = 4,25 %“ → `0.0425`).
 
 ### Feldhinweise (Mehrfamilienhaus)
 

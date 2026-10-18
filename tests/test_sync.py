@@ -20,7 +20,7 @@ def test_sync_is_idempotent(conn, config):
     assert count(conn, "SELECT COUNT(*) FROM listing_profile") == 3
     assert count(conn, "SELECT COUNT(*) FROM price_history") == 3
     assert count(conn, "SELECT COUNT(*) FROM run_log WHERE schritt = 'sync'") == 2
-    # Duplikatgruppe = eigene ID, bis die Portal-übergreifende Erkennung steht
+    # verschiedene Objekte → jedes bildet seine eigene Duplikatgruppe
     assert count(conn, "SELECT COUNT(*) FROM listing WHERE duplicate_group = id") == 3
 
 

@@ -307,17 +307,28 @@ def run_score(conn: sqlite3.Connection, config: Config, only_profile: str | None
 
 
 def ranking(conn: sqlite3.Connection, config: Config, profile_id: str, limit: int | None = None, ausgeschlossene: bool = False) -> list[sqlite3.Row]:
-    """Aktive Angebote nach Score; abgelehnte/verworfene (Workflow) und ausgeschlossene standardmäßig ausgeblendet."""
+    """Aktive Angebote nach Score; abgelehnte/verworfene (Workflow) und ausgeschlossene standardmäßig ausgeblendet.
+
+    Je Duplikatgruppe nur das am besten bewertete Angebot (dasselbe Objekt auf mehreren Portalen).
+    """
     end = config.settings.workflow.end_status
     marks = ",".join("?" * len(end))
-    sql = f"""SELECT l.id, l.titel, l.ort, l.preis, l.provider, l.url, s.score, s.kaufpreisempfehlung, s.preisabstand,
-                     s.hard_filter_result, s.ausschlussgrund, s.kpis_json
+    sql = f"""SELECT l.id, l.titel, l.ort, l.preis, l.provider, l.url, l.duplicate_group, s.score, s.kaufpreisempfehlung,
+                     s.preisabstand, s.hard_filter_result, s.ausschlussgrund, s.kpis_json
               FROM score s JOIN listing l ON l.id = s.listing_id
               LEFT JOIN workflow w ON w.duplicate_group = l.duplicate_group
               WHERE s.profile_id = ? AND l.status_portal = 'aktiv'
                 AND (w.status IS NULL OR w.status NOT IN ({marks}))
                 {"" if ausgeschlossene else "AND s.hard_filter_result = 'bestanden'"}
-              ORDER BY s.score IS NULL, s.score DESC, l.id
-              {"LIMIT ?" if limit else ""}"""
-    params: list[Any] = [profile_id, *end] + ([limit] if limit else [])
-    return conn.execute(sql, params).fetchall()
+              ORDER BY s.score IS NULL, s.score DESC, l.id"""
+    out: list[sqlite3.Row] = []
+    gesehen: set[int] = set()
+    for row in conn.execute(sql, [profile_id, *end]):
+        gruppe = row["duplicate_group"] if row["duplicate_group"] is not None else -row["id"]
+        if gruppe in gesehen:
+            continue
+        gesehen.add(gruppe)
+        out.append(row)
+        if limit and len(out) >= limit:
+            break
+    return out

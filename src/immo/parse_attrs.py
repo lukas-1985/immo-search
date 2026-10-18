@@ -135,14 +135,31 @@ def _gewerbeeinheiten(text: str) -> Item | None:
     )
 
 
+MWST = 0.19
+# „3,57 % zzgl. gesetzl. MwSt.“ / „zuzüglich der gesetzlichen Mehrwertsteuer“ – der Satz ist netto
+_ZZGL_MWST = r"\s*(?:\(\s*)?(?:zzgl\.?|zuzüglich)\s+(?:der\s+)?(?:gesetzl\w*\.?\s+)?(?:MwSt|Mehrwertsteuer|USt|Umsatzsteuer)"
+
+
 def _provision(text: str) -> Item | None:
     found: list[tuple[float, str]] = []
+    netto: dict[float, float] = {}
     for m in re.finditer(r"(?<!nicht )\bprovisionsfrei\b|\bkeine\s+(?:Käufer|Makler)?provision\b", text, re.IGNORECASE):
         found.append((0.0, _line_of(text, m)))
     pattern = r"(?:Käuferprovision|Käufercourtage|Maklerprovision|Provision|Courtage)[^\d\n%]{0,40}?(\d{1,2}(?:[.,]\d{1,2})?)\s*%"
     for m in re.finditer(pattern, text, re.IGNORECASE):
-        found.append((round(float(m.group(1).replace(",", ".")) / 100, 4), _line_of(text, m)))
-    return _unique(found)
+        satz = float(m.group(1).replace(",", ".")) / 100
+        if re.match(_ZZGL_MWST, text[m.end():], re.IGNORECASE):
+            brutto = round(satz * (1 + MWST), 4)
+            netto[brutto] = satz
+            satz = brutto
+        found.append((round(satz, 4), _line_of(text, m)))
+    item = _unique(found)
+    if item is not None and item["wert"] in netto:
+        def pct(x: float) -> str:
+            return f"{x * 100:.2f}".replace(".", ",")
+
+        item["rechenweg"] = f"{pct(netto[item['wert']])} % zzgl. 19 % MwSt. = {pct(item['wert'])} %"
+    return item
 
 
 def _grundstueck(text: str) -> Item | None:
