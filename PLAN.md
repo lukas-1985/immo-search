@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 19.10.2026 · Status: Phasen 2–4, 7 und 8 umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 und 8b offen.
+> Stand: 19.10.2026 · Status: Phasen 2–4, 7, 8 und 8b umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 offen, 9 optional.
 
 ---
 
@@ -18,7 +18,7 @@
   - Score-Formel
   - Finanzannahmen
 - **Kaufpreisempfehlung:** Für jedes Angebot wird automatisch der Kaufpreis berechnet, bei dem der monatliche Cashflow neutral ist (Ziel einstellbar). Er wird überall angezeigt: Liste, Detailansicht, Telegram, Digest, MCP.
-- **Was-wäre-wenn-Simulation:** alle sinnvollen Parameter (Preis, Miete, Kosten, Finanzierung, Steuern, Entwicklung) je Objekt frei veränderbar, mit sofortiger Neuberechnung, Sensitivitätsanalyse und speicherbaren Szenarien. Dazu eine Simulation des gesamten Rankings.
+- **Was-wäre-wenn-Simulation:** Kauf, Miete, Finanzierung und Kosten je Objekt veränderbar. Alle Kennzahlen werden neu berechnet. Außerdem lässt sich eine Kennzahl als Ziel festlegen (Cashflow, Bruttorendite, Nettoanfangsrendite), dann wird Kaufpreis, Miete, Zins oder Eigenkapital daraus zurückgerechnet. Szenarien lassen sich speichern. Dazu eine Simulation des gesamten Rankings.
 - **Ausgabe:** Sofortmeldung über Telegram bei Top-Treffern und ein täglicher Digest per E-Mail.
 - **Eigener kleiner Server `immo-server`** auf Basis der **eigenen SQLite-DB**. Er stellt zwei Dinge bereit:
   - eine **Web-Oberfläche**: Übersicht, Liste, Detailansicht, Status-Verfolgung, Läufe anstoßen, Konfigurations-Editor, Kaufpreisempfehlung, Objekt- und Ranking-Simulation
@@ -316,7 +316,7 @@ grunderwerbsteuer:       # Tabelle je Bundesland, regelmäßig prüfen
   BY: 0.035
   NW: 0.065
   # …
-steuern:                 # nur für die Simulation „Cashflow nach Steuern“ (vereinfacht)
+steuern:                 # vorgehalten für „Cashflow nach Steuern“ (Phase 9, optional); in 8b nicht genutzt
   grenzsteuersatz: 0.42  # PLATZHALTER, persönlicher Satz inkl. Soli
   gebaeudeanteil: 0.75   # Anteil Gebäude am Kaufpreis (Rest Grund & Boden, nicht abschreibbar)
   afa_satz: auto         # auto = nach Baujahr (2,5 % vor 1925, 2 % bis 2022, 3 % ab 2023) oder fester Wert
@@ -516,31 +516,44 @@ Ein einziger Python-Prozess (FastAPI + Uvicorn) stellt Oberfläche, REST-API und
 - Preisverlauf als Diagramm (mit Linie der Kaufpreisempfehlung), Standzeit
 - Risiken und Pro/Contra aus der Claude-Auswertung
 - **Status setzen** mit optionaler Notiz, Verlauf der Statuswechsel
-- Button „Neu auswerten (Claude)“, Button **„Simulieren“** (öffnet die Objekt-Simulation mit den Werten dieses Angebots)
+- Button „Neu auswerten (Claude)“, Button **„Simulieren“** (öffnet die Objekt-Simulation mit den Werten dieses Angebots), Liste der gespeicherten Szenarien mit Kurzwerten (Kaufpreis, Miete, Cashflow, Bruttorendite)
 
-**4. Was-wäre-wenn: Objekt-Simulation**
+**4. Was-wäre-wenn: Objekt-Simulation** (Phase 8b)
 
-Ein Angebot mit beliebigen Annahmen durchrechnen. Ausgangspunkt sind immer die aktuellen Werte des Angebots und die Finanzannahmen seines Profils. Jeder Parameter lässt sich per Regler oder Feld ändern, geänderte Werte sind markiert und einzeln zurücksetzbar. Die Ergebnisse werden **sofort** neu berechnet (HTMX, serverseitig mit `finance.simulate()`).
+Ein Angebot mit eigenen Annahmen durchrechnen, nur für **Jahr 1**, also dieselbe Rechnung wie in der Detailansicht. Eigene Seite `/angebot/<id>/simulation?profil=<id>`, aufgerufen über den Button „Simulieren“. Ausgangspunkt sind immer die aktuellen Werte des Angebots (gleiche Herleitung wie in `scoring.bewerte`, also Merkmale + `annahmen_fuer`) und die Finanzannahmen des Profils. Neu gerechnet wird per Button **„Neu rechnen“** (Formular-POST wie bei der Ranking-Simulation, ohne JS). Geänderte Felder sind markiert, zeigen den Ausgangswert und lassen sich einzeln zurücksetzen. Dazu gibt es „Alles zurücksetzen“.
 
-*Parameter:*
+*Parameter (Vorwärtsrechnung):*
 
 | Gruppe | Parameter |
 |---|---|
-| Kauf | Kaufpreis, Makler (%), Grunderwerbsteuer (%), Notar/Grundbuch (%), Sanierung sofort (€) |
-| Einnahmen | Ist-Miete (€/Jahr oder €/m²), Zielmiete nach Neuvermietung/Mieterhöhung, Zeitpunkt der Anpassung, Leerstand (Einheiten oder %), Mietausfallwagnis (%) |
-| Kosten | Bewirtschaftungsquote, Instandhaltung (€/m²/Jahr), Verwaltung (€/Einheit/Monat), Kostensteigerung (%/Jahr) |
-| Finanzierung | Eigenkapital, Zins, Tilgung, Zinsbindung (Jahre), Anschlusszins, optional zweites Darlehen (z. B. KfW) mit eigenem Zins und eigener Tilgung |
-| Steuern (vereinfacht) | Grenzsteuersatz, Gebäudeanteil, AfA-Satz |
-| Entwicklung | Haltedauer (Jahre), Mietsteigerung (%/Jahr), Wertsteigerung (%/Jahr), Verkaufsnebenkosten (%) |
-| Ziel | Ziel-Cashflow pro Monat (für die Kaufpreisempfehlung) |
+| Kauf | Kaufpreis (€), Makler (%), Sanierung sofort (€). Grunderwerbsteuer und Notar sind sichtbar, aber fest aus dem Profil. |
+| Miete | Jahresnettokaltmiete wahlweise als €/Jahr oder €/m² und Monat (Umrechnung über die Wohnfläche), Wohnfläche (m²) |
+| Finanzierung | Eigenkapital (€ oder „= Kaufnebenkosten“), Zins, Tilgung, Tilgung einrechnen ja/nein |
+| Kosten und Ziel | Bewirtschaftungsquote, Instandhaltung (€/m²/Jahr), Ziel-Cashflow pro Monat (für die Kaufpreisempfehlung) |
 
-*Ergebnisse:*
-- **Kennzahlen** wie in der Detailansicht: Bruttorendite, Faktor, Nettoanfangsrendite, Cashflow vor und nach Steuern, Score. Jeweils mit Abweichung zum Ausgangswert.
-- **Kaufpreisempfehlung** für die aktuellen Annahmen
-- **Break-even-Werte:** höchster Zins, niedrigste Miete und höchster Leerstand, bei denen der Cashflow noch neutral ist
-- **Verlauf über die Haltedauer** (Tabelle und Diagramm): Miete, Kosten, Zins, Tilgung, Restschuld, Cashflow, kumulierter Cashflow, Objektwert, Eigenkapital im Objekt. Am Ende: Gewinn bei Verkauf und Eigenkapitalrendite (IRR).
-- **Sensitivität (Tornado-Diagramm):** Wie stark ändern sich Cashflow und Kaufpreisempfehlung, wenn jeder Parameter einzeln um ±10 % (Zins: ±0,5 Pp) schwankt? So sieht man, welche Annahme am meisten zählt.
-- **Szenarien:** Die aktuelle Einstellung lässt sich unter einem Namen speichern („Bank-Angebot A“, „nach Sanierung“, „Verhandlungsziel“). Bis zu drei Szenarien werden nebeneinander verglichen. Gespeicherte Szenarien erscheinen in der Detailansicht und können über MCP gelesen werden. Sie ändern weder Score noch Profil.
+*Zielwert-Rückrechnung:* Eine Kennzahl auf einen Wunschwert setzen, eine Größe auswählen, die daraus berechnet wird, dann „Berechnen“. Der berechnete Wert wird als geänderter Parameter übernommen, alle anderen Kennzahlen rechnen damit neu. Es wird immer nur eine Größe gelöst, alle anderen Eingaben bleiben fest. Alle Formeln sind geschlossen (linear, ohne Iteration). Bezeichnungen wie in 5.6: M Jahresmiete, q Bewirtschaftungsquote, i Instandhaltung €/m², A Wohnfläche, B = q·M + i·A, n Nebenkostenquote, S Sanierung, EK Eigenkapital, k = Zins + Tilgung (bzw. nur Zins), D = max(0, P·(1+n) + S − EK), C Ziel-Cashflow pro Monat.
+
+| Zielwert | → Kaufpreis P | → Miete M | → Zins | → Eigenkapital |
+|---|---|---|---|---|
+| Cashflow/Monat = C | P* wie in 5.6 | M = (12·C + i·A + k·D) / (1 − q) | k = (M − B − 12·C) / D, Zins = k − Tilgung (falls eingerechnet) | D = (M − B − 12·C) / k, EK = P·(1+n) + S − D |
+| Bruttorendite = r | P = M / r | M = r · P | – | – |
+| Nettoanfangsrendite = r | P = (M·(1−q) − i·A) / (r·(1+n)) | M = (r·P·(1+n) + i·A) / (1 − q) | – | – |
+
+- Zins und Eigenkapital lassen sich nur aus dem Cashflow-Ziel zurückrechnen, weil die Renditen nicht von der Finanzierung abhängen. Andere Kombinationen sind in der Oberfläche nicht wählbar.
+- Ergebnisstatus wie bei der Kaufpreisempfehlung: `ok`, `nicht_erreichbar` (z. B. Zins müsste negativ sein, oder der Cashflow reicht selbst ohne Darlehen nicht), `immer_erreicht` (z. B. EK = 0 genügt schon, oder es fällt kein Kapitaldienst an), `miete_fehlt`. Ein nicht erreichbarer Zielwert ändert keinen Parameter und wird als Meldung angezeigt.
+- Wird das Eigenkapital gelöst, wird daraus ein fester Betrag, auch wenn das Profil „= Kaufnebenkosten“ vorsieht. Bei P und M als Lösung mit EK „= Kaufnebenkosten“ gilt die angepasste Formel (EK wächst mit P mit, wie in 5.6).
+- Die Zins-Lösung bei C = Ziel-Cashflow ist der „Break-even-Zins“, die Miet-Lösung die „Break-even-Miete“. Eigene Break-even-Kacheln gibt es deshalb nicht.
+
+*Ergebnisse:* Tabelle mit **Ausgangswert | Simulation | Abweichung** für Nebenkosten, Gesamtinvestition, Darlehen, Rate/Monat, Cashflow/Monat, Bruttorendite, Faktor, Nettoanfangsrendite, Kaufpreisempfehlung (mit Zinsspanne ±0,5 Pp) und Preisabstand. Dazu der **Score** mit den simulierten Werten (gleiche Bewertungslogik inkl. Ausschlusskriterien, z. B. „würde bei Bruttorendite < 4 % ausgeschlossen“). Hinweise wie „Miete geschätzt“ bleiben sichtbar, solange die Miete nicht selbst gesetzt ist.
+
+*Szenarien:*
+- Die aktuelle Einstellung lässt sich unter einem Namen speichern („Bank-Angebot A“, „Verhandlungsziel“). Tabelle `scenario`: `annahmen_json` enthält nur die geänderten Parameter, `ergebnis_json` den Stand beim Speichern.
+- Beim Laden wird mit den **aktuellen** Ausgangswerten neu gerechnet, die Änderungen werden darübergelegt. Weichen die Ergebnisse vom gespeicherten Stand ab (neue Extraktion, geänderte Profil-Annahmen), steht ein Hinweis dabei.
+- Szenarien lassen sich laden, überschreiben, umbenennen und löschen. Bis zu drei werden nebeneinander verglichen (mit dem Ausgangswert als erster Spalte).
+- Szenarien hängen am Angebot und am Profil. Sie ändern weder Score noch Ranking noch das Profil.
+- **Kein MCP-Zugriff** (Entscheidung 19.10.2026). Rechnen und Szenarien gibt es nur in der Oberfläche.
+
+*Nicht in 8b* (verschoben nach Phase 9, optional): Mehrjahresverlauf, Zinsbindung und Anschlusszins, zweites Darlehen, Steuern/AfA, IRR, Sensitivität/Tornado, Leerstand und Zielmiete mit Zeitpunkt, Regler mit Sofort-Neuberechnung, MCP `simulate_listing`/`get_scenarios`.
 
 **5. Was-wäre-wenn: Ranking-Simulation**
 - Profil wählen, dann per Regler und Feldern KPI-Gewichte, Normalisierungsgrenzen, Ausschluss-Schwellen und alle Finanzannahmen des Profils (inkl. Ziel-Cashflow) ändern
@@ -548,9 +561,7 @@ Ein Angebot mit beliebigen Annahmen durchrechnen. Ausgangspunkt sind immer die a
 - Anzeige der Auf- und Absteiger im Vergleich zum aktuellen Ranking (▲▼ Plätze)
 - Button **„Als Profil übernehmen“** öffnet den Konfigurations-Editor mit den geänderten Werten und einer Vorschau der Änderungen
 
-**Gemeinsame Rechenbasis:** Score, Kaufpreisempfehlung, Detailansicht, beide Simulationen und MCP nutzen dieselbe Funktion `finance.simulate(listing, annahmen) → ergebnis`. Ohne geänderte Annahmen liefert die Simulation exakt die Werte der Detailansicht. Ein Test stellt das sicher.
-
-> Die Steuerrechnung ist bewusst vereinfacht (AfA, Zinsen und Bewirtschaftung als Werbungskosten, persönlicher Grenzsteuersatz). Sie ersetzt keine Steuerberatung und ist in der Oberfläche als Näherung gekennzeichnet.
+**Gemeinsame Rechenbasis:** Score, Kaufpreisempfehlung, Detailansicht, beide Simulationen und MCP nutzen dieselbe Funktion `finance.simulate(basis, **aenderungen) → ergebnis`. Die Zielwert-Rückrechnung (`finance.loese(...)`) liefert nur einen Parameterwert, gerechnet wird danach wieder mit `simulate()`. Ohne geänderte Annahmen liefert die Simulation exakt die Werte der Detailansicht. Ein Test stellt das sicher.
 
 **6. Konfiguration**
 - `settings.yaml` und die Profile als Formulare (aus dem Pydantic-Schema erzeugt), zusätzlich ein YAML-Rohmodus für Fortgeschrittene
@@ -584,8 +595,6 @@ Ein Angebot mit beliebigen Annahmen durchrechnen. Ausgangspunkt sind immer die a
 | `get_changes` | Neu, Preisänderungen, entfernt seit Zeitpunkt X |
 | `get_stats` | Bestand, Verteilungen, Zustand je Portal |
 | `simulate_scoring` | Ranking-Simulation mit geänderten Gewichten bzw. Annahmen, **ohne Speichern** |
-| `simulate_listing` | Objekt-Simulation: ein Angebot mit geänderten Parametern durchrechnen (alle Parameter aus 10.2 Nr. 4), inkl. Kaufpreisempfehlung, Break-even-Werten und Sensitivität, **ohne Speichern** |
-| `get_scenarios` | Gespeicherte Szenarien eines Angebots mit Annahmen und Ergebnissen |
 | `get_jobs` | Status laufender und letzter Läufe |
 
 **Schreib-Werkzeuge** (einzeln in `settings.yaml` freischaltbar)
@@ -730,8 +739,8 @@ immo-search/
 | **6 – Automatisierung** | `run.ps1`, Windows-Aufgabenplanung, Sperre, Berechtigungen, Anmeldung (Token nur falls nötig), Backup, Überwachung | Läuft eine Woche unbeaufsichtigt ohne Eingriff. |
 | **7 – Server: Lesen** | `immo-server` mit Login, Übersicht, Liste, Detailansicht. MCP mit allen Lese-Werkzeugen, Tailscale-Zugang, Links in Telegram/Digest | Oberfläche ist zu Hause und unterwegs per VPN nutzbar. Claude Code/Desktop beantwortet Fragen wie „Top 5 MFH über 6 %?“ über MCP. |
 | **8 – Server: Aktionen** | Status-Workflow & Notizen, Job-Runner (Lauf, Neu auswerten, Digest), Ranking-Simulation, Konfigurations-Editor mit Prüfung, Diff, Backup und Neuberechnung. MCP-Schreib-Werkzeuge | Alle Aktionen funktionieren in Oberfläche und MCP, jede Änderung ist protokolliert. Eine Konfigurationsänderung in der Oberfläche führt zu korrekt neu berechneten Scores und Kaufpreisempfehlungen. |
-| **8b – Objekt-Simulation** | Erweiterung von `finance.simulate()` um Mehrjahresverlauf, Zinsbindung/Anschluss, zweites Darlehen, Steuern, IRR, Break-even, Sensitivität. Oberfläche (Regler, Verlauf, Tornado-Diagramm, Szenario-Vergleich), Tabelle `scenario`, MCP `simulate_listing` und `get_scenarios` | Ohne Änderungen stimmt die Simulation mit der Detailansicht überein. Verlauf und IRR stimmen für 2 Beispiele mit einer Tabellenkalkulation überein. Szenarien lassen sich speichern, vergleichen und löschen. |
-| **9 – Ausbau** (optional) | Karte (Leaflet/OSM), Lernen aus deinem Status-Verlauf (Gewichte vorschlagen), weitere KPIs (Mietpotenzial mit Mietspiegel), weitere Portale/Profile | nach Bedarf |
+| **8b – Objekt-Simulation** | Eigene Seite je Angebot und Profil: Kauf, Miete, Finanzierung und Kosten ändern, Jahr-1-Kennzahlen und Score neu rechnen. Zielwert-Rückrechnung (Cashflow, Bruttorendite, Nettoanfangsrendite → Kaufpreis, Miete, Zins, Eigenkapital) über `finance.loese()`. Szenarien in Tabelle `scenario` (speichern, laden, umbenennen, löschen, bis zu 3 vergleichen), Liste in der Detailansicht. Kein MCP | Ohne Änderungen stimmt die Simulation exakt mit der Detailansicht überein. Jede Rückrechnung ergibt eingesetzt in `simulate()` exakt den Zielwert (3 Handrechnungen + Zufallsfälle), nicht erreichbare Ziele werden gemeldet. Szenarien lassen sich speichern, vergleichen und löschen, Score und Ranking bleiben unverändert. |
+| **9 – Ausbau** (optional) | Karte (Leaflet/OSM), Lernen aus deinem Status-Verlauf (Gewichte vorschlagen), weitere KPIs (Mietpotenzial mit Mietspiegel), weitere Portale/Profile. Aus 8b verschoben: Mehrjahresverlauf, Zinsbindung/Anschlusszins, zweites Darlehen, Steuern/AfA, IRR, Sensitivität (Tornado), Leerstand/Zielmiete mit Zeitpunkt, MCP `simulate_listing`/`get_scenarios` | nach Bedarf |
 
 > Die Phasen 7–8 bauen auf der DB aus den Phasen 2–4 auf. Mit einfachen Ansichten kann Phase 7 auch parallel zu 5–6 entstehen.
 
@@ -747,7 +756,8 @@ immo-search/
 | 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → Claude → Bewertung → Health) mit `--permission-mode dontAsk` und `.claude/run-settings.json`. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. |
 | 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
 | 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
-| 8b, 9 | offen | Objekt-Simulation (Mehrjahresverlauf, Steuern, IRR, Szenarien). |
+| 8b | fertig (19.10.2026, Umfang verkleinert) | `finance.loese()` (geschlossene Formeln), `objekt_simulation.py` (Basis wie `scoring.bewerte`, Formular, Szenarien), Seiten `/angebot/<id>/simulation` und `/angebot/<id>/vergleich`, Szenarien in der Detailansicht. Tests `tests/test_objekt_simulation.py`: 8 Handrechnungen, 1 500 Zufallsfälle (Zielwert exakt getroffen), ohne Änderung = gespeicherte Bewertung, Szenarien ändern keine Bewertung. Im Browser mit einer Kopie des echten Bestands geprüft (Angebot 24: Break-even-Zins 4,01 %, Kaufpreis für Cashflow 0 = Empfehlung). |
+| 9 | offen | optional |
 
 Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), danach die Doku zur Übergabe.
 

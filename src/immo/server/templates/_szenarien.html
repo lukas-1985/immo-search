@@ -1,0 +1,39 @@
+{# Gespeicherte Szenarien eines Angebots (Detailansicht und Objekt-Simulation). Erwartet: l, szenarien, profil_sz, csrf #}
+{% set sz_weiter = pfad ~ "?profil=" ~ profil_sz ~ ("" if pfad.endswith("/simulation") else "#szenarien") %}
+<div class="karte" id="szenarien">
+  <h3 style="margin-top:0">Szenarien <span class="klein">(Profil {{ profil_sz }})</span></h3>
+  {% if szenarien %}
+  <form method="get" action="/angebot/{{ l.id }}/vergleich" id="vergleich-form"><input type="hidden" name="profil" value="{{ profil_sz }}"></form>
+  <div class="tabelle-wrap"><table>
+    <tr><th></th><th>Name</th><th class="r">Kaufpreis</th><th class="r">Miete / Jahr</th><th class="r">Cashflow / Monat</th><th class="r">Bruttorendite</th><th class="r">Empfehlung</th><th>Geändert</th><th></th></tr>
+    {% for s in szenarien %}
+    {% set e = s.ergebnis or {} %}
+    <tr>
+      <td><input type="checkbox" name="s" value="{{ s.id }}" form="vergleich-form" title="zum Vergleich auswählen"></td>
+      <td><a href="/angebot/{{ l.id }}/simulation?szenario={{ s.id }}">{{ s.name }}</a>
+        <div class="klein">{{ s.annahmen|length }} Änderung(en): {{ s.annahmen.keys()|join(", ") }}</div></td>
+      <td class="r">{{ (s.annahmen.kaufpreis if "kaufpreis" in s.annahmen else l.preis)|eur }}</td>
+      <td class="r">{{ s.annahmen.miete_ist|eur if "miete_ist" in s.annahmen else "wie Angebot" }}</td>
+      <td class="r {{ 'gut' if (e.cashflow_monat or 0) >= 0 else 'schlecht' }}">{{ e.cashflow_monat|eur }}</td>
+      <td class="r">{{ e.bruttorendite|pct(2) }}</td>
+      <td class="r">{{ e.kaufpreisempfehlung|eur }}</td>
+      <td class="klein">{{ s.updated_at|datum(true) }}</td>
+      <td><details><summary class="klein">…</summary>
+        <form method="post" action="/angebot/{{ l.id }}/szenario/{{ s.id }}/umbenennen" class="zeile">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="profil" value="{{ profil_sz }}">
+          <input type="hidden" name="weiter" value="{{ sz_weiter }}">
+          <input type="text" name="name" value="{{ s.name }}" maxlength="80" class="schmal" style="width:140px"><button class="zweit">Umbenennen</button></form>
+        <form method="post" action="/angebot/{{ l.id }}/szenario/{{ s.id }}/loeschen" onsubmit="return confirm('Szenario „{{ s.name|e }}“ löschen?')">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="profil" value="{{ profil_sz }}">
+          <input type="hidden" name="weiter" value="{{ sz_weiter }}">
+          <button class="zweit">Löschen</button></form>
+      </details></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="zeile" style="margin-top:8px"><button form="vergleich-form" class="zweit">Ausgewählte vergleichen (bis 3)</button>
+    <span class="klein">Werte beim Speichern; der Vergleich rechnet mit den aktuellen Ausgangswerten.</span></p>
+  {% else %}
+  <p class="klein">Noch keine Szenarien. In der <a href="/angebot/{{ l.id }}/simulation?profil={{ profil_sz }}">Simulation</a> Werte ändern und speichern.</p>
+  {% endif %}
+</div>

@@ -28,6 +28,8 @@
     {% if ke.zins_minus %} · Spanne bei Zins ±0,5 Pp: {{ ke.zins_plus|eur }} – {{ ke.zins_minus|eur }}{% endif %}
     {% if b.ausgeschlossen %} · <span class="pill schlecht">ausgeschlossen: {{ b.ausschlussgrund }}</span>{% endif %}
   </p>
+  <p class="zeile"><a class="knopf" href="/angebot/{{ l.id }}/simulation?profil={{ aktiv }}">Simulieren</a>
+    <span class="klein">Kaufpreis, Miete, Finanzierung ändern oder einen Zielwert vorgeben{% if szenarien %} · {{ szenarien|length }} Szenario(s) gespeichert{% endif %}</span></p>
   {% for h in b.details.hinweise or [] %}<div class="klein warn">• {{ h }}</div>{% endfor %}
   {% if f.annahmen %}
   <details><summary>Rechenweg und Annahmen</summary>
@@ -108,6 +110,7 @@
       </details>
       {% endif %}
     </div>
+    {% if aktiv %}{% set profil_sz = aktiv %}{% include "_szenarien.html" %}{% endif %}
     <div class="karte" id="notizen">
       <h3 style="margin-top:0">Notizen</h3>
       <form method="post" action="/angebot/{{ l.id }}/notiz">

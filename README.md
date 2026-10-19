@@ -10,7 +10,8 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN
 - Phase 1 (Fredy auf dem Mini-PC): läuft, Abschluss nach einigen Tagen Laufzeit. [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md)
 - Phasen 7 und 8 (immo-server): Weboberfläche, MCP, Job-Runner, Ranking-Simulation, Konfigurations-Editor. `uv run python scripts/serve.py`, Einrichtung in [docs/SERVER.md](docs/SERVER.md)
 - Phase 6 (Automatisierung): Aufgabenplanung für Läufe, Backup und Server-Autostart (`scripts/install_tasks.ps1`), tägliches Backup (`scripts/backup.py`), Health-Prüfung nach jedem Lauf (`scripts/health.py`). Einrichtung in [docs/SERVER.md](docs/SERVER.md), Abschnitt 7; Abnahme (eine Woche unbeaufsichtigt) steht aus.
-- Offen: Phase 5 (Telegram/Digest), Phase 8b (Objekt-Simulation)
+- Phase 8b (Objekt-Simulation): je Angebot Kauf, Miete, Finanzierung und Kosten ändern, Zielwert-Rückrechnung (Cashflow, Bruttorendite, Nettoanfangsrendite → Kaufpreis, Miete, Zins, Eigenkapital), Szenarien speichern und vergleichen. Button „Simulieren“ in der Detailansicht.
+- Offen: Phase 5 (Telegram/Digest), Phase 9 (optional)
 
 ## Einrichten
 

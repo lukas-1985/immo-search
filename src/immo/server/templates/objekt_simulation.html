@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block titel %}Simulation · {{ l.titel or "Angebot" }}{% endblock %}
+{% macro fmt(v, art) -%}
+  {%- if v is none %}–{% elif art == "eur" %}{{ v|eur }}{% elif art == "pct" %}{{ v|pct(2) }}{% elif art == "bool" %}{{ "ja" if v else "nein" }}
+  {%- elif art == "ek" %}{{ "= Kaufnebenkosten" if v == "nebenkosten" else v|eur }}{% else %}{{ v|zahl(1) }}{% endif -%}
+{%- endmacro %}
+{% macro diff(a, b, art, richtung=0) -%}
+  {%- if a is not none and b is not none and a != b -%}
+    {%- set d = b - a -%}
+    <span class="{{ '' if not richtung else ('gut' if d * richtung > 0 else 'schlecht') }}">{% if art == "eur" %}{{ "+" if d > 0 else "−" }}{{ (d|abs)|eur }}{% elif art == "pct" %}{{ ("%+.2f"|format(d * 100)).replace(".", ",").replace("-", "−") }} Pp{% else %}{{ ("%+.1f"|format(d)).replace(".", ",").replace("-", "−") }}{% endif %}</span>
+  {%- endif -%}
+{%- endmacro %}
+{% block inhalt %}
+{% set a0, a = r.annahmen_basis, r.annahmen %}
+{% set ae = r.aenderungen %}
+<p class="klein"><a href="/angebot/{{ l.id }}?profil={{ basis.profile.id }}">← Angebot {{ l.id }}</a> · Profil {{ basis.profile.name }}
+  {% if profile_angebot|length > 1 %} · wechseln: {% for pid in profile_angebot %}<a class="pill {{ 'gut' if pid == basis.profile.id else '' }}" href="?profil={{ pid }}">{{ pid }}</a>{% endfor %}{% endif %}</p>
+<h1>Was-wäre-wenn: {{ l.titel or "Angebot " ~ l.id }}</h1>
+<p class="klein">Rechnung für Jahr 1, wie in der Detailansicht. Werte ändern und „Neu rechnen“, oder unten einen Zielwert vorgeben.
+  Gespeicherte Szenarien ändern weder Score noch Ranking.</p>
+{% if fehler %}<div class="meldung fehler">{{ fehler }}</div>{% endif %}
+{% if bewertung_veraltet %}<p class="klein warn">• Die gespeicherte Bewertung in der Detailansicht ist älter als die aktuelle Konfiguration. Die Ausgangswerte hier sind mit der aktuellen Konfiguration gerechnet und können deshalb von der Detailansicht abweichen, bis neu bewertet wurde (Läufe → Bewerten).</p>{% endif %}
+{% if loesung %}
+  {% set gl = os.GROESSEN[loesung.groesse] %}
+  {% if loesung.wert is not none %}<div class="meldung">{{ gl }} berechnet: <b>{{ fmt(loesung.wert, os.PARAM[loesung.groesse].art) }}</b>{% if loesung.text %} – {{ loesung.text }}{% endif %}</div>
+  {% else %}<div class="meldung fehler">{{ gl }}: {{ loesung.text }}. Nichts geändert.</div>{% endif %}
+{% endif %}
+{% if szenario %}<p class="zeile"><span class="pill gut">Szenario „{{ szenario.name }}“</span>
+  {% if szenario.annahmen != ae %}<span class="klein warn">geändert, noch nicht gespeichert</span>{% endif %}
+  {% if abweichungen %}<span class="klein warn">Seit dem Speichern abweichend (neue Ausgangswerte): {{ abweichungen|join(", ") }}</span>{% endif %}</p>{% endif %}
+
+<form method="post" action="/angebot/{{ l.id }}/simulation">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="profil" value="{{ basis.profile.id }}">
+  {% if szenario %}<input type="hidden" name="szenario_id" value="{{ szenario.id }}">{% endif %}
+  <button name="aktion" value="rechnen" class="unsichtbar" tabindex="-1" aria-hidden="true">Neu rechnen</button>
+  <div class="zwei">
+    <div class="karte">
+      <h3 style="margin-top:0">Annahmen</h3>
+      <table>
+        <tr><th>Parameter</th><th class="r">Ausgangswert</th><th>Simulation</th><th></th></tr>
+        {% for gruppe in os.GRUPPEN %}
+        <tr><td colspan="4" class="klein"><b>{{ gruppe }}</b></td></tr>
+        {% for p in os.PARAMETER if p.gruppe == gruppe %}
+        {% set geaendert = p.name in ae %}
+        <tr class="{{ 'geaendert' if geaendert else '' }}">
+          <td>{{ p.label }}</td>
+          <td class="r klein">{{ fmt(a0[p.name], p.art) }}</td>
+          <td>
+            {% if p.art == "bool" %}<input type="checkbox" name="p_{{ p.name }}" value="1" {% if a[p.name] %}checked{% endif %}>
+            {% elif p.art == "ek" %}
+              <select name="p_eigenkapital_art">
+                <option value="nebenkosten" {% if a.eigenkapital == "nebenkosten" %}selected{% endif %}>= Kaufnebenkosten</option>
+                <option value="betrag" {% if a.eigenkapital != "nebenkosten" %}selected{% endif %}>Betrag (€)</option></select>
+              <input type="number" step="any" min="0" class="schmal" name="p_eigenkapital" value="{{ os.eingabe_wert(p, a.eigenkapital) }}"
+                     placeholder="{{ (a.eigenkapital_bei(a.kaufpreis))|round|int }}">
+            {% else %}<input type="number" step="any" {% if p.name != "ziel_cashflow_monat" %}min="0"{% endif %} style="width:{{ 130 if p.art == "eur" else 90 }}px" name="p_{{ p.name }}" value="{{ os.eingabe_wert(p, a[p.name]) }}">{% if p.art == "pct" %} %{% endif %}
+            {% endif %}
+            {% if p.name == "miete_ist" %}
+              <div class="klein">oder <input type="number" step="0.01" min="0" style="width:80px" name="p_miete_m2" value="{{ os.miete_m2(a.miete_ist, a.wohnflaeche) or '' }}"> €/m² und Monat
+                <input type="hidden" name="p_miete_m2_vorher" value="{{ os.miete_m2(a.miete_ist, a.wohnflaeche) or '' }}">
+                · Qualität: {{ "selbst gesetzt" if geaendert else (a0.miete_qualitaet or "fehlt") }}</div>
+            {% endif %}
+          </td>
+          <td>{% if geaendert %}<button name="zuruecksetzen" value="{{ p.name }}" class="zweit klein" title="Auf Ausgangswert zurücksetzen">↺</button>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+        <tr><td class="klein">Grunderwerbsteuer · Notar/Grundbuch</td><td class="r klein" colspan="2">{{ a.grunderwerbsteuer|pct(1) }} · {{ a.notar_grundbuch|pct(1) }} (fest aus dem Profil)</td><td></td></tr>
+      </table>
+      <div class="zeile" style="margin-top:10px">
+        <button name="aktion" value="rechnen">Neu rechnen</button>
+        <a class="knopf zweit" href="/angebot/{{ l.id }}/simulation?profil={{ basis.profile.id }}">Alles zurücksetzen</a>
+      </div>
+    </div>
+
+    <div>
+      <div class="karte">
+        <h3 style="margin-top:0">Zielwert vorgeben</h3>
+        <div class="zeile">
+          <select name="ziel_kombi">
+            {% for ziel_, label in os.ZIELE.items() %}<optgroup label="{{ label }}">
+              {% for g in os.ZIEL_GROESSEN[ziel_] %}{% set k = ziel_ ~ ":" ~ g %}
+              <option value="{{ k }}" {% if ziel.kombi == k %}selected{% endif %}>{{ label.split(" (")[0] }} → {{ os.GROESSEN[g] }}</option>{% endfor %}
+            </optgroup>{% endfor %}
+          </select>
+          <input type="number" step="any" class="schmal" name="ziel_wert" value="{{ ziel.wert }}" placeholder="z. B. 0 oder 6">
+          <button name="aktion" value="loesen" class="zweit">Berechnen</button>
+        </div>
+        <p class="klein">Cashflow in € pro Monat, Renditen in %. Die gewählte Größe wird so gesetzt, dass die Kennzahl genau den Zielwert erreicht;
+          alle anderen Annahmen bleiben, wie sie links stehen. Cashflow → Zins ergibt den Break-even-Zins, Cashflow → Miete die Break-even-Miete.</p>
+      </div>
+
+      <div class="karte">
+        <h3 style="margin-top:0">Ergebnis</h3>
+        <table>
+          <tr><th>Kennzahl</th><th class="r">Ausgangswert</th><th class="r">Simulation</th><th class="r">Abweichung</th></tr>
+          {% for name, la in os.KENNZAHLEN.items() %}{% set label, art = la %}
+          {% set k0, k1 = r.basis[name], r.simulation[name] %}
+          <tr {% if name in ("cashflow_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}>
+            <td>{{ label }}</td><td class="r">{{ fmt(k0, art) }}</td>
+            <td class="r {% if name == 'cashflow_monat' and k1 is not none %}{{ 'gut' if k1 >= a.ziel_cashflow_monat else 'schlecht' }}{% endif %}">{{ fmt(k1, art) }}</td>
+            <td class="r">{{ diff(k0, k1, art, os.RICHTUNG.get(name, 0)) }}</td></tr>
+          {% endfor %}
+        </table>
+        {% set s1 = r.simulation %}
+        <p class="klein">
+          {% if s1.kpe_status != "ok" %}<span class="pill warn">{{ s1.kpe_text }}</span> {% endif %}
+          Kaufpreisempfehlung für Ziel-Cashflow {{ a.ziel_cashflow_monat|eur }}/Monat, Qualität {{ s1.kpe_qualitaet or "–" }}.
+          {% if s1.ausgeschlossen %}<span class="pill schlecht">würde ausgeschlossen: {{ s1.ausgeschlossen }}</span>{% elif r.basis.ausgeschlossen %}<span class="pill gut">nicht mehr ausgeschlossen</span>{% endif %}
+        </p>
+        {% for h in r.hinweise %}<div class="klein warn">• {{ h }}</div>{% endfor %}
+      </div>
+
+      <div class="karte">
+        <h3 style="margin-top:0">Szenario speichern</h3>
+        <div class="zeile">
+          <input type="text" name="name" maxlength="{{ os.MAX_NAME }}" placeholder="z. B. Verhandlungsziel" value="{{ szenario.name if szenario else '' }}" style="flex:1">
+          <button name="aktion" value="speichern" class="zweit">Als neues Szenario</button>
+          {% if szenario %}<button name="aktion" value="ueberschreiben" class="zweit">„{{ szenario.name }}“ überschreiben</button>{% endif %}
+        </div>
+        <p class="klein">Gespeichert werden nur die geänderten Werte ({{ ae|length }}). Beim Laden wird mit den dann aktuellen Ausgangswerten gerechnet.</p>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% set profil_sz = basis.profile.id %}
+{% include "_szenarien.html" %}
+{% endblock %}

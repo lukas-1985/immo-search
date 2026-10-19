@@ -17,7 +17,7 @@ from typing import Any
 from .config import Config, ConfigError, HardFilterRule, Profile
 from .db import now_iso
 from .extraction import field_values, load_schema
-from .finance import Qualitaet, annahmen_fuer, simulate
+from .finance import Annahmen, Qualitaet, annahmen_fuer, simulate
 from .kpis import REGISTER, Kontext, KpiWert, as_json, berechne_alle, normalisiere
 
 SCORING_VERSION = 1  # erhöhen, wenn sich die Rechenlogik ändert → config_hash ändert sich mit
@@ -178,19 +178,30 @@ def _fmt(v: Any) -> str:
     return f"{v:.4g}" if isinstance(v, float) else str(v)
 
 
-def bewerte(config: Config, profile: Profile, listing: dict[str, Any], felder: dict[str, dict]) -> Bewertung:
-    """Reine Funktion: dieselben Eingaben ergeben immer dieselbe Bewertung."""
-    hinweise: list[str] = []
-    if not listing.get("preis"):
-        return Bewertung(None, False, None, None, None, {"hinweise": ["Kaufpreis fehlt – keine Bewertung"], "unvollstaendig": ["preis"]})
-
+def basis_annahmen(config: Config, profile: Profile, listing: dict[str, Any], felder: dict[str, dict]) -> Annahmen:
+    """Annahmen eines Angebots aus Angebotsdaten, Merkmalen und Profil (gemeinsam für Bewertung und Objekt-Simulation)."""
     miete = None
     if "jahresnettokaltmiete_ist" in felder:
         m = felder["jahresnettokaltmiete_ist"]
         miete = (float(m["wert"]), QUELLE_QUALITAET[m["quelle"]])
     provision = felder.get("provision", {}).get("wert")
-    basis = annahmen_fuer(config, profile, float(listing["preis"]), listing.get("flaeche"), miete, provision)
-    ergebnis = simulate(basis)
+    return annahmen_fuer(config, profile, float(listing["preis"]), listing.get("flaeche"), miete, provision)
+
+
+def bewerte(config: Config, profile: Profile, listing: dict[str, Any], felder: dict[str, dict],
+            aenderungen: dict[str, Any] | None = None) -> Bewertung:
+    """Reine Funktion: dieselben Eingaben ergeben immer dieselbe Bewertung.
+
+    `aenderungen` (Objekt-Simulation) überschreibt einzelne Annahmen; Kaufpreis und Wohnfläche gelten dann
+    auch für die Ausschlusskriterien.
+    """
+    hinweise: list[str] = []
+    if not listing.get("preis"):
+        return Bewertung(None, False, None, None, None, {"hinweise": ["Kaufpreis fehlt – keine Bewertung"], "unvollstaendig": ["preis"]})
+
+    ergebnis = simulate(basis_annahmen(config, profile, listing, felder), **(aenderungen or {}))
+    if aenderungen:
+        listing = {**listing, "preis": ergebnis.annahmen.kaufpreis, "flaeche": ergebnis.annahmen.wohnflaeche}
     kpis = berechne_alle(Kontext(ergebnis, listing.get("flaeche"), config.finance_for(profile).marktmiete_eur_m2))
 
     grund, filterprotokoll, fehlend = _hard_filter(profile.hard_filter, listing, felder, kpis)

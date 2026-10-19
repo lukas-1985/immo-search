@@ -71,3 +71,6 @@ details > summary { cursor: pointer; color: var(--akz); margin: 6px 0; }
 .pager { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
 dl.daten { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
 dl.daten dt { color: var(--tx2); } dl.daten dd { margin: 0; }
+/* Objekt-Simulation */
+tr.geaendert td, td.geaendert { background: var(--warn-bg, rgba(214, 158, 46, .12)); }
+.unsichtbar { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

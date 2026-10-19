@@ -11,7 +11,7 @@ Größen (siehe PLAN.md 5.6):
 
     EK = "nebenkosten" heißt EK = P · n, also D = P + S und P* = (M − B − 12·C) / k − S.
 
-Phase 8b erweitert `simulate()` um Mehrjahresverlauf, Steuern, IRR usw.; die Werte hier bleiben gleich.
+Objekt-Simulation (Phase 8b): `simulate(basis, **aenderungen)` vorwärts, `loese()` rechnet eine Größe aus einem Zielwert zurück.
 """
 
 from __future__ import annotations
@@ -182,6 +182,88 @@ def simulate(basis: Annahmen, **aenderungen: Any) -> Ergebnis:
         kaufpreisempfehlung=kaufpreisempfehlung(a),
         hinweise=list(a.hinweise),
     )
+
+
+# --------------------------------------------------------------------------- Zielwert-Rückrechnung (Objekt-Simulation)
+
+# Zielkennzahl → Größen, die sich daraus zurückrechnen lassen (Renditen hängen nicht von der Finanzierung ab)
+ZIEL_GROESSEN: dict[str, tuple[str, ...]] = {
+    "cashflow_monat": ("kaufpreis", "miete_ist", "zins", "eigenkapital"),
+    "bruttorendite": ("kaufpreis", "miete_ist"),
+    "nettoanfangsrendite": ("kaufpreis", "miete_ist"),
+}
+
+
+@dataclass
+class Loesung:
+    groesse: str
+    wert: float | None  # None: nichts übernehmen
+    status: Literal["ok", "nicht_erreichbar", "immer_erreicht", "miete_fehlt"]
+
+    @property
+    def text(self) -> str:
+        return {
+            "ok": "",
+            "nicht_erreichbar": "Zielwert nicht erreichbar",
+            "immer_erreicht": "Zielwert wird schon ohne Eigenkapital erreicht" if self.groesse == "eigenkapital"
+                              else "Zielwert wird bei jedem Wert erreicht",
+            "miete_fehlt": "Miete fehlt",
+        }[self.status]
+
+
+def loese(a: Annahmen, ziel: str, zielwert: float, groesse: str) -> Loesung:
+    """Wert von `groesse`, bei dem `simulate()` die Zielkennzahl genau trifft; alle anderen Annahmen bleiben fest.
+
+    Geschlossene Formeln (PLAN.md 10.2 Nr. 4). Renditen als Anteil, Cashflow in € pro Monat.
+    """
+    if groesse not in ZIEL_GROESSEN.get(ziel, ()):
+        raise ValueError(f"'{groesse}' lässt sich nicht aus '{ziel}' berechnen")
+    m, q, n = a.miete_ist, a.bewirtschaftung_quote, a.nebenkosten_quote
+    inst = a.instandhaltung_eur_m2_jahr * (a.wohnflaeche or 0.0)
+    if m is None and groesse != "miete_ist":
+        return Loesung(groesse, None, "miete_fehlt")
+    if ziel != "cashflow_monat" and zielwert <= 0 and groesse == "kaufpreis":
+        return Loesung(groesse, None, "nicht_erreichbar")
+
+    if ziel == "bruttorendite":
+        wert = m / zielwert if groesse == "kaufpreis" else zielwert * a.kaufpreis  # type: ignore[operator]
+    elif ziel == "nettoanfangsrendite":
+        if groesse == "kaufpreis":
+            wert = (m * (1 - q) - inst) / (zielwert * (1 + n))  # type: ignore[operator]
+        else:
+            if q >= 1:
+                return Loesung(groesse, None, "nicht_erreichbar")
+            wert = (zielwert * a.kaufpreis * (1 + n) + inst) / (1 - q)
+    else:  # Cashflow: M − B − k·D = 12·C
+        k, d = a.kapitaldienst_satz, darlehen(a)
+        if groesse == "kaufpreis":
+            preis, status = empfohlener_preis(a.mit(ziel_cashflow_monat=zielwert))
+            return Loesung(groesse, preis, "immer_erreicht" if status == "unbegrenzt" else status)  # type: ignore[arg-type]
+        if groesse == "miete_ist":
+            if q >= 1:
+                return Loesung(groesse, None, "nicht_erreichbar")
+            wert = (12 * zielwert + inst + k * d) / (1 - q)
+            if wert < 0:
+                return Loesung(groesse, None, "immer_erreicht")
+        else:
+            ueberschuss = m - bewirtschaftung(a) - 12 * zielwert  # type: ignore[operator]
+            if groesse == "zins":
+                if d <= 0:
+                    return Loesung(groesse, None, "immer_erreicht" if ueberschuss >= 0 else "nicht_erreichbar")
+                wert = ueberschuss / d - (a.tilgung if a.tilgung_einrechnen else 0.0)
+                if wert < 0:
+                    return Loesung(groesse, None, "nicht_erreichbar")
+            else:  # eigenkapital: benötigtes Darlehen D = Überschuss / k
+                if ueberschuss < 0:
+                    return Loesung(groesse, None, "nicht_erreichbar")
+                if k <= 0:
+                    return Loesung(groesse, 0.0, "immer_erreicht")
+                wert = a.kaufpreis * (1 + n) + a.sanierung_sofort - ueberschuss / k
+                if wert <= 0:
+                    return Loesung(groesse, 0.0, "immer_erreicht")
+    if wert <= 0 and groesse in ("kaufpreis", "miete_ist"):
+        return Loesung(groesse, None, "nicht_erreichbar")
+    return Loesung(groesse, wert, "ok")
 
 
 # --------------------------------------------------------------------------- Annahmen aus Angebot + Profil

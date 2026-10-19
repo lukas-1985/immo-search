@@ -17,9 +17,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
-from .. import config_edit, jobs, queries
+from .. import config_edit, jobs, objekt_simulation, queries
 from ..config import ConfigError, secret
-from ..scoring import run_score
+from ..scoring import config_hash, run_score
 from ..simulation import FINANZ_FELDER, SimulationsFehler, als_yaml, simuliere_ranking
 from ..workflow import WorkflowFehler, erlaubte_status, notiz_hinzufuegen, setze_status
 from .auth import angemeldet, csrf_token, passwort_ok, pruefe_csrf
@@ -35,7 +35,10 @@ router = APIRouter()
 def eur(v: Any, nachkomma: int = 0) -> str:
     if v is None:
         return "–"
-    s = f"{float(v):,.{nachkomma}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    v = float(v)
+    if abs(v) < 0.5 * 10 ** -nachkomma:  # Rundungsrest, kein „-0 €“
+        v = 0.0
+    s = f"{v:,.{nachkomma}f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{s} €"
 
 
@@ -267,7 +270,8 @@ def angebot(request: Request, listing_id: int, profil: str | None = None, conn: 
         "SELECT id, status FROM job WHERE typ = 'neu_auswerten' AND parameter = ? AND status IN ('wartend', 'läuft')",
         (json.dumps({"listing_id": listing_id}),)).fetchone()
     return seite(request, "detail.html", d=d, b=b, aktiv=aktiv, belege=belege, status_werte=erlaubte_status(z.config),
-                 offener_job=dict(offene_jobs) if offene_jobs else None)
+                 offener_job=dict(offene_jobs) if offene_jobs else None,
+                 szenarien=objekt_simulation.szenarien(conn, listing_id, aktiv) if aktiv else [])
 
 
 # --------------------------------------------------------------------------- Aktionen am Angebot
@@ -404,6 +408,121 @@ async def simulation_rechnen(request: Request, conn: sqlite3.Connection = Depend
     return seite(request, "simulation.html", profil=profil, finanzen=z.config.finance_for(profil), werte=daten,
                  ergebnis=ergebnis, fehler=fehler, aenderungen=ae, finanz_felder=FINANZ_FELDER,
                  tilgung_an=daten.get("tilgung_einrechnen") == "1")
+
+
+# --------------------------------------------------------------------------- Objekt-Simulation (Phase 8b)
+
+
+def _profile_des_angebots(conn: sqlite3.Connection, listing_id: int) -> list[str]:
+    return [r["profile_id"] for r in conn.execute("SELECT profile_id FROM listing_profile WHERE listing_id = ? ORDER BY profile_id", (listing_id,))]
+
+
+def _objekt_seite(request: Request, conn: sqlite3.Connection, basis: objekt_simulation.Basis, ae: dict[str, Any], *,
+                  szenario: dict | None = None, loesung=None, ziel: dict | None = None, fehler: str | None = None) -> HTMLResponse:
+    r = objekt_simulation.rechne(basis, ae)
+    gespeichert = conn.execute("SELECT config_hash FROM score WHERE listing_id = ? AND profile_id = ?",
+                               (basis.listing["id"], basis.profile.id)).fetchone()
+    veraltet = gespeichert is None or gespeichert["config_hash"] != config_hash(basis.config, basis.profile)
+    abw = objekt_simulation.abweichungen(szenario["ergebnis"], r["simulation"]) if szenario and szenario["annahmen"] == ae else []
+    return seite(request, "objekt_simulation.html", basis=basis, l=basis.listing, r=r, os=objekt_simulation, szenario=szenario,
+                 szenarien=objekt_simulation.szenarien(conn, basis.listing["id"], basis.profile.id), loesung=loesung,
+                 ziel=ziel or {}, fehler=fehler, abweichungen=abw, bewertung_veraltet=veraltet, profile_angebot=_profile_des_angebots(conn, basis.listing["id"]))
+
+
+def _basis_oder_404(conn: sqlite3.Connection, z, listing_id: int, profil: str | None) -> objekt_simulation.Basis:
+    try:
+        return objekt_simulation.lade_basis(conn, z.config, listing_id, profil or None)
+    except objekt_simulation.ObjektFehler as exc:
+        raise HTTPException(404, str(exc)) from None
+
+
+@router.get("/angebot/{listing_id}/simulation", response_class=HTMLResponse, dependencies=[Depends(login_noetig)])
+def objekt_simulation_seite(request: Request, listing_id: int, profil: str | None = None, szenario: int | None = None,
+                            conn: sqlite3.Connection = Depends(conn_dep), z=Depends(zustand)):
+    s, ae, fehler = None, {}, None
+    if szenario is not None:
+        try:
+            s = objekt_simulation.szenario(conn, szenario, listing_id)
+        except objekt_simulation.ObjektFehler as exc:
+            raise HTTPException(404, str(exc)) from None
+        profil = s["profile_id"]
+    basis = _basis_oder_404(conn, z, listing_id, profil)
+    if s is not None:
+        try:
+            ae = objekt_simulation.normalisiere(basis.annahmen, s["annahmen"])
+        except objekt_simulation.ObjektFehler as exc:
+            fehler = f"Szenario lässt sich nicht laden: {exc}"
+    return _objekt_seite(request, conn, basis, ae, szenario=s, fehler=fehler)
+
+
+@router.post("/angebot/{listing_id}/simulation", response_class=HTMLResponse, dependencies=[Depends(login_noetig)])
+async def objekt_simulation_rechnen(request: Request, listing_id: int, conn: sqlite3.Connection = Depends(conn_dep), z=Depends(zustand)):
+    daten = await formular(request)
+    basis = _basis_oder_404(conn, z, listing_id, daten.get("profil"))
+    s = None
+    if daten.get("szenario_id"):
+        try:
+            s = objekt_simulation.szenario(conn, int(daten["szenario_id"]), listing_id)
+        except (ValueError, objekt_simulation.ObjektFehler):
+            s = None
+    ziel = {"kombi": daten.get("ziel_kombi", ""), "wert": daten.get("ziel_wert", "")}
+    try:
+        ae = objekt_simulation.aus_formular(basis.annahmen, daten)
+    except objekt_simulation.ObjektFehler as exc:
+        return _objekt_seite(request, conn, basis, {}, szenario=s, ziel=ziel, fehler=f"{exc} – Eingaben zurückgesetzt")
+    feld = daten.get("zuruecksetzen")
+    if feld:
+        ae.pop(feld, None)
+    aktion, loesung, fehler = daten.get("aktion", "rechnen"), None, None
+    try:
+        if aktion == "loesen":
+            zielname, _, groesse = ziel["kombi"].partition(":")
+            wert = objekt_simulation.zahl_aus_text(ziel["wert"])
+            if wert is None:
+                raise objekt_simulation.ObjektFehler("Bitte einen Zielwert angeben")
+            ae, loesung = objekt_simulation.loese_ziel(basis, ae, zielname, wert / 100 if zielname != "cashflow_monat" else wert, groesse)
+        elif aktion in ("speichern", "ueberschreiben"):
+            sid = objekt_simulation.speichere_szenario(conn, basis, daten.get("name", ""), ae,
+                                                       s["id"] if aktion == "ueberschreiben" and s else None)
+            melde(request, f"Szenario „{daten.get('name', '').strip()}“ gespeichert.")
+            return zurueck(request, f"/angebot/{listing_id}/simulation?szenario={sid}")
+    except objekt_simulation.ObjektFehler as exc:
+        fehler = str(exc)
+    return _objekt_seite(request, conn, basis, ae, szenario=s, loesung=loesung, ziel=ziel, fehler=fehler)
+
+
+@router.post("/angebot/{listing_id}/szenario/{szenario_id}/{aktion}", dependencies=[Depends(login_noetig)])
+async def szenario_aendern(request: Request, listing_id: int, szenario_id: int, aktion: str, conn: sqlite3.Connection = Depends(conn_dep)):
+    daten = await formular(request)
+    ziel = f"/angebot/{listing_id}/simulation?profil={daten.get('profil', '')}"
+    try:
+        if aktion == "umbenennen":
+            objekt_simulation.umbenennen(conn, szenario_id, listing_id, daten.get("name", ""))
+            melde(request, "Szenario umbenannt.")
+        elif aktion == "loeschen":
+            objekt_simulation.loesche_szenario(conn, szenario_id, listing_id)
+            melde(request, "Szenario gelöscht.")
+        else:
+            raise HTTPException(404, "unbekannte Aktion")
+    except objekt_simulation.ObjektFehler as exc:
+        melde(request, str(exc), "fehler")
+    return zurueck(request, daten.get("weiter") if daten.get("weiter", "").startswith("/angebot/") else ziel)
+
+
+@router.get("/angebot/{listing_id}/vergleich", response_class=HTMLResponse, dependencies=[Depends(login_noetig)])
+def szenario_vergleich(request: Request, listing_id: int, profil: str | None = None,
+                       conn: sqlite3.Connection = Depends(conn_dep), z=Depends(zustand)):
+    basis = _basis_oder_404(conn, z, listing_id, profil)
+    ids = [int(v) for v in request.query_params.getlist("s") if v.isdigit()]
+    try:
+        auswahl = [objekt_simulation.szenario(conn, i, listing_id) for i in dict.fromkeys(ids)]
+        if any(s["profile_id"] != basis.profile.id for s in auswahl):
+            raise objekt_simulation.ObjektFehler("Szenarien verschiedener Profile lassen sich nicht vergleichen")
+        spalten = objekt_simulation.vergleich(basis, auswahl)
+    except objekt_simulation.ObjektFehler as exc:
+        melde(request, str(exc), "fehler")
+        return zurueck(request, f"/angebot/{listing_id}/simulation?profil={basis.profile.id}")
+    return seite(request, "szenario_vergleich.html", basis=basis, l=basis.listing, spalten=spalten, os=objekt_simulation)
 
 
 # --------------------------------------------------------------------------- Konfiguration

@@ -71,7 +71,7 @@ Werkzeuge:
 |---|---|
 | `list_profiles`, `search_listings`, `get_top_listings`, `get_listing`, `explain_score`, `compare_listings`, `get_changes`, `get_stats`, `simulate_scoring` (ohne Speichern), `get_jobs`, Ressource `immo://felder` | `set_status`, `add_note`, `start_run`, `reextract_listing` |
 
-Nicht über MCP: Konfiguration ändern, Merkmale überschreiben, Daten löschen. `send_digest_now` kommt mit Phase 5, `simulate_listing`/`get_scenarios` mit Phase 8b.
+Nicht über MCP: Konfiguration ändern, Merkmale überschreiben, Daten löschen. `send_digest_now` kommt mit Phase 5. Die Objekt-Simulation (Phase 8b) gibt es bewusst nur in der Oberfläche.
 
 ## 5. Sicherheit
 

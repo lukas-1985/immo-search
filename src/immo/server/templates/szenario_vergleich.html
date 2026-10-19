@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titel %}Szenarien vergleichen · {{ l.titel or "Angebot" }}{% endblock %}
+{% macro fmt(v, art) -%}
+  {%- if v is none %}–{% elif art == "eur" %}{{ v|eur }}{% elif art == "pct" %}{{ v|pct(2) }}{% elif art == "bool" %}{{ "ja" if v else "nein" }}
+  {%- elif art == "ek" %}{{ "= Kaufnebenkosten" if v == "nebenkosten" else v|eur }}{% else %}{{ v|zahl(1) }}{% endif -%}
+{%- endmacro %}
+{% block inhalt %}
+<p class="klein"><a href="/angebot/{{ l.id }}/simulation?profil={{ basis.profile.id }}">← Simulation</a> · <a href="/angebot/{{ l.id }}?profil={{ basis.profile.id }}">Angebot {{ l.id }}</a> · Profil {{ basis.profile.name }}</p>
+<h1>Szenarien vergleichen: {{ l.titel or "Angebot " ~ l.id }}</h1>
+<p class="klein">Alle Spalten mit den aktuellen Ausgangswerten gerechnet. Geänderte Annahmen sind markiert.</p>
+<div class="tabelle-wrap"><table>
+  <tr><th></th>{% for s in spalten %}<th class="r">{% if s.id %}<a href="/angebot/{{ l.id }}/simulation?szenario={{ s.id }}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</th>{% endfor %}</tr>
+  <tr><td colspan="{{ spalten|length + 1 }}" class="klein"><b>Annahmen</b></td></tr>
+  {% for p in os.PARAMETER %}
+  <tr><td>{{ p.label }}</td>{% for s in spalten %}<td class="r {{ 'geaendert' if p.name in s.aenderungen else '' }}">{{ fmt(s.annahmen[p.name], p.art) }}</td>{% endfor %}</tr>
+  {% endfor %}
+  <tr><td colspan="{{ spalten|length + 1 }}" class="klein"><b>Ergebnis</b></td></tr>
+  {% for name, la in os.KENNZAHLEN.items() %}{% set label, art = la %}
+  <tr {% if name in ("cashflow_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}><td>{{ label }}</td>{% for s in spalten %}<td class="r">{{ fmt(s.werte[name], art) }}</td>{% endfor %}</tr>
+  {% endfor %}
+  <tr><td>Ausschluss</td>{% for s in spalten %}<td class="r klein">{{ s.werte.ausgeschlossen or "–" }}</td>{% endfor %}</tr>
+  <tr><td>Seit dem Speichern abweichend</td>{% for s in spalten %}<td class="r klein warn">{{ (s.abweichungen or [])|join(", ") }}</td>{% endfor %}</tr>
+</table></div>
+{% endblock %}
