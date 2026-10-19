@@ -4,15 +4,17 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 
 **Maßgeblich ist [PLAN.md](PLAN.md).** Stand der Umsetzung: PLAN.md, Abschnitt 13.1. Offene Punkte: Abschnitt 14. Einrichtung des Mini-PCs: [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md). Server und MCP: [docs/SERVER.md](docs/SERVER.md).
 
-## Wo wir stehen (zuletzt aktualisiert 18.10.2026)
+## Wo wir stehen (zuletzt aktualisiert 19.10.2026)
 
-- **Fertig:** Phasen 2–4 (Sync, Extraktion, Scoring mit Kaufpreisempfehlung) und Phasen 7–8 (immo-server: Oberfläche, MCP, Workflow, Job-Runner, Ranking-Simulation, Konfigurations-Editor; ohne Digest-Teile). 123 Tests grün.
-- **Vorgezogen aus Phase 6:** `run.ps1` (Sync → Regeln → `claude -p "/immo-analyse … --nur-extraktion"` → Bewertung, Sperrdatei, Zeitlimit) mit `.claude/run-settings.json` (`--permission-mode dontAsk`). Claude Code CLI 2.1.302 per winget installiert, **noch nicht angemeldet** (`claude auth login` macht der Nutzer).
+- **Fertig:** Phasen 2–4 (Sync, Extraktion, Scoring mit Kaufpreisempfehlung) und Phasen 7–8 (immo-server: Oberfläche, MCP, Workflow, Job-Runner, Ranking-Simulation, Konfigurations-Editor; ohne Digest-Teile). 141 Tests grün.
+- **Phase 6 umgesetzt (19.10.2026), Abnahme offen:** `run.ps1` (Sync → Regeln → `claude -p "/immo-analyse … --nur-extraktion"` → Bewertung → Health, Sperrdatei, Zeitlimit) mit `.claude/run-settings.json` (`--permission-mode dontAsk`). `scripts/install_tasks.ps1` legt die Aufgaben „immo-search lauf/backup/server“ an (über `scripts/aufgabe.ps1`; Läufe über `scripts/lauf.py` als Job „zeitplan“); **das richtet der Nutzer selbst ein**, docs/SERVER.md Abschnitt 7. Backup `scripts/backup.py`, Health `scripts/health.py` (Ergebnis in `run_log`, Telegram-Alarm erst mit Phase 5). Danach eine Woche beobachten. Claude Code CLI 2.1.302 per winget installiert, **noch nicht angemeldet** (`claude auth login` macht der Nutzer).
 - **Erster echter Lauf (18.10.2026):** 48 Angebote in `data/immo.db` (sync zweimal, 2. Lauf neu = 0), Regeln + Claude-Extraktion für alle 48 (0 abgelehnt), `score.py` gelaufen. Extraktionsdateien unter `data/extraction/`.
 - **Phase 1 fast fertig:** Der Mini-PC (AI-HOME, Lenovo ThinkCentre, Windows 11 direkt auf der Hardware) ist eingerichtet: WSL 2.7.13, Docker Desktop 4.95, uv. Es gibt nur Laufwerk C:. Das Repo liegt unter `C:\E\ai-workspace\immo-search`, Fredys Daten unter `C:\E\docker\fredy`. Fredy 29.3.0 läuft unter http://localhost:9998. Passwort steht in `.env`.
   - Aktives Profil `mfh-kl` (Kaiserslautern, 5 km, 300 000–2 000 000 €, RP, EK = nur Nebenkosten, Miete 9 €/m²). Fredy-Jobs „MFH KL – IS24/Immowelt/Kleinanzeigen“, Analytics aus, Arbeitszeit 07–22 Uhr, Intervall 60 Min., `provider_details` für alle drei Portale.
-  - Ergebnisse der Diagnose: Tabelle in [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitt 8.
-- **Server-Inbetriebnahme (Nutzer, siehe docs/SERVER.md):** `scripts/set_password.py --mcp-token`, `claude auth login`, `scripts/serve.py`; für unterwegs Tailscale und `server.bind`. Im Browser und per MCP mit einem Test-Zugang am echten Bestand geprüft, eigenes Passwort ist noch nicht gesetzt.
+  - Ergebnisse der Diagnose: Tabelle in [docs/SETUP-MINIPC.md](docs/SETUP-MINIPC.md), Abschnitt 8. Such-URLs, Fredy-Einstellungen und nützliche Fredy-API-Endpunkte: Abschnitt 9.
+  - **Offenes Risiko:** Fredy löscht Angebote nach `listingRetentionDays` = 14. Ab 01.11.2026 prüfen, ob `sync` sie dann fälschlich als „entfernt“ markiert (Anleitung, Abschnitt 9).
+- **Server-Inbetriebnahme (Stand 19.10.2026):** `UI_PASSWORD_HASH`, `SESSION_SECRET` und `MCP_TOKEN` hat der Nutzer in `.env` gesetzt. **Offen:** `claude auth login` (ohne Anmeldung entfällt in `run.ps1` die Claude-Extraktion → Exit 2), Server läuft nicht dauerhaft (Start von Hand: `uv run python scripts/serve.py`, Stoppen: Strg+C oder Prozess auf Port 8710 beenden), Tailscale fehlt. Anleitung: docs/SERVER.md.
+- **Entscheidungen des Nutzers:** Immowelt-Bot-Schutz vorerst ignorieren. Leerstand = Mietpotenzial (Ranking nicht korrigieren). Job-Runner gleich mit Claude (nicht erst in Phase 6). Phase 8b erst nach 7 und 8. Er möchte, dass Claude Einrichtungsschritte selbst ausführt, wo das zulässig ist. Passwörter, Anmeldungen und Windows-Einstellungen macht er selbst.
 - **Nächster Schritt:**
   1. Immowelt beobachten: Beim ersten Lauf meldete Fredy „detected as a bot“ (HTTP 403). Der Nutzer will unabhängig davon weitermachen.
   2. Erkenntnisse aus dem ersten Lauf:
@@ -21,7 +23,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
      - Erledigt: **Duplikate** über Portale (`duplicates.py`): gleiche PLZ, Titel ≥ 90 % ähnlich, Preis ± 5 %, Fläche ± 2 %, verschiedene Portale. Läuft am Ende jedes Syncs, Gruppe = kleinste ID, Workflow-Status wandert bei Zusammenlegung mit. `ranking` zeigt je Gruppe nur das beste Angebot. Im Bestand 7 Paare, keine Fehltreffer.
      - Erledigt: Provision „zzgl. MwSt.“ wird × 1,19 gerechnet (Regel mit Rechenweg, Hinweis im Skill). Angebot 39: 4,25 %.
   3. Nach 2–3 Tagen `check_fredy.py` und `sync.py` erneut ausführen (Anleitung, Abschnitt 7), dann Phase 1 abschließen.
-- **Danach:** Phase 5 (Telegram + E-Mail-Digest, dann `send_digest_now` und Digest-Button), Phase 6 (Aufgabenplanung für Läufe und Server-Autostart, Backup, Überwachung), Phase 8b (Objekt-Simulation).
+- **Danach:** Phase 5 (Telegram + E-Mail-Digest, dann `send_digest_now` und Digest-Button), Phase 6 abnehmen (eine Woche unbeaufsichtigt), Phase 8b (Objekt-Simulation).
 - **Hinweis für Sitzungen in der Claude-Desktop-App:** Der Server-Prozess erbt die MSIX-Umleitung von AppData; `UV_PYTHON_INSTALL_DIR` setzen (siehe Memory). Den Dev-Server nie mit der echten `.env` und fremdem Passwort starten: Test-Zugang nur per Umgebungsvariablen des Prozesses.
 
 ## Arbeitsweise
@@ -56,11 +58,14 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 | `src/immo/fredy_check.py` | Diagnose gegen das laufende Fredy (Phase 1) |
 | `src/immo/queries.py` | Lesende Abfragen für Oberfläche und MCP: `liste` (je Duplikatgruppe eine Zeile), `detail`, `uebersicht`, `aenderungen`, `statistik` |
 | `src/immo/workflow.py` | Status (an der Duplikatgruppe) und Notizen, Quelle ui/mcp/system |
-| `src/immo/jobs.py` | Job-Warteschlange und Runner-Thread (`lauf`, `neu_auswerten`, `bewerten`), nur feste Befehle |
+| `src/immo/jobs.py` | Job-Warteschlange und Runner-Thread (`lauf`, `neu_auswerten`, `bewerten`), nur feste Befehle; `direkt_ausfuehren` für zeitgesteuerte Läufe |
+| `src/immo/backup.py` | Backup: `immo.db` per Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss (nur kopiert, nie geöffnet), Aufbewahrung |
+| `src/immo/health.py` | Health-Prüfung (Portale, Sync, Backup, `/health`) → `run_log` |
 | `src/immo/simulation.py` | Ranking-Simulation im Speicher, `als_yaml` für „Als Profil übernehmen“ |
 | `src/immo/config_edit.py` | Konfigurations-Editor: Prüfung in Kopie, Diff, Backup, `config_change`; `setze_werte` ändert Werte im Text (Kommentare bleiben) |
 | `src/immo/server/` | FastAPI-App (`app.py`), Routen (`web.py`), Jinja-Vorlagen, CSS, Login/CSRF/Bearer (`auth.py`), MCP-Werkzeuge (`mcp_tools.py`, SDK `mcp` 2.x: `MCPServer`) |
 | `run.ps1`, `.claude/run-settings.json` | Unbeaufsichtigter Lauf und Rechte des Claude-Laufs |
+| `scripts/install_tasks.ps1`, `scripts/aufgabe.ps1` | Windows-Aufgabenplanung anlegen; Einstieg der Aufgaben (Logs `data/logs/aufgabe-*.log`, Server-Neustartschleife) |
 | `.claude/skills/immo-analyse/` | Skill (`SKILL.md`) und Extraktionsschema MFH |
 
 ## Wissen über Fredy (Recherche 18.10.2026, Quellcode auf GitHub)
@@ -94,4 +99,5 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuse
 - Abnahmekriterium Phase 3 mit **echten Anzeigen** (18.10.2026): 22 der 48 Anzeigen nennen eine Miete, bei 21 ist die Ist-Miete erkannt (95 %; Regeln 13, Claude 8). Die Ausnahme (Angebot 35) nennt nur die Ladenmiete. Nur 21 der 48 Angebote haben damit überhaupt eine Ist-Miete, der Rest wird mit `miete_schaetzung_eur_m2` geschätzt.
 - Regel `wohneinheiten` lag zweimal falsch („Neubaukonzept für 7 Wohneinheiten“, „5 Wohnungen … vermietet“). Korrigiert und getestet; weitere solche Fälle sind möglich.
 - Ohne `finance.bundesland` im Profil rechnet die Grunderwerbsteuer mit 0 %. Das wird als Hinweis angezeigt.
-- Workflow, Notizen, Benachrichtigungen, Server und MCP fehlen noch, die Tabellen dafür gibt es schon.
+- Benachrichtigungen und Digest (Phase 5) fehlen noch; MCP-Werkzeug `send_digest_now` und der Digest-Button sind deshalb nicht vorhanden. Phase 8b (`simulate_listing`, `get_scenarios`, Tabelle `scenario`) fehlt ebenfalls.
+- Claude-Extraktion in größerem Umfang: `pending.py` liefert höchstens 20 Angebote. Beim ersten Lauf hat Claude 48 Angebote in drei Durchgängen ausgewertet (Dateien `data/extraction/2026101*.json`), 0 abgelehnt.

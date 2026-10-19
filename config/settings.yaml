@@ -24,6 +24,19 @@ notify:
 schedule:
   run:    { every_hours: 3, from: "07:00", to: "22:00" }
   digest: { at: "07:30" }
+  backup: { at: "03:00" }
+
+backup:
+  ziel: "data/backup"    # PLATZHALTER: besser ein Ordner, der vom Mini-PC weg synchronisiert wird (NAS, OneDrive)
+  aufbewahrung_tage: 14
+  mindestens_behalten: 3
+  fredy_db_dir: "C:/E/docker/fredy/db"
+
+health:                  # Prüfung am Ende jedes Laufs, Ergebnis in run_log (Telegram-Alarm folgt mit Phase 5)
+  portale: [immoscout, immowelt, kleinanzeigen]
+  max_tage_ohne_angebot: 3
+  max_stunden_ohne_sync: 12
+  max_stunden_ohne_backup: 36
 
 workflow:
   status: [neu, gesichtet, interessant, angefragt, besichtigt, angebot_abgegeben, gekauft]

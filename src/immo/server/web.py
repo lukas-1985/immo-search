@@ -196,7 +196,8 @@ async def logout(request: Request):
 def health(z=Depends(zustand)):
     conn = z.db()
     try:
-        letzter = conn.execute("SELECT schritt, start, ende, fehler FROM run_log ORDER BY id DESC LIMIT 1").fetchone()
+        letzter = conn.execute("SELECT schritt, start, ende, fehler FROM run_log WHERE schritt NOT IN ('health', 'backup') "
+                               "ORDER BY id DESC LIMIT 1").fetchone()
         return JSONResponse({"ok": True, "angebote": conn.execute("SELECT COUNT(*) FROM listing").fetchone()[0],
                              "letzter_lauf": dict(letzter) if letzter else None})
     finally:

@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 18.10.2026 · Status: Phasen 2–4, 7 und 8 umgesetzt (ohne Digest-Teile), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5, 6 und 8b offen.
+> Stand: 19.10.2026 · Status: Phasen 2–4, 7 und 8 umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 und 8b offen.
 
 ---
 
@@ -697,7 +697,7 @@ immo-search/
   src/immo/                       ← gemeinsame Logik
     config.py  db.py  models.py  filters.py  kpis.py  scoring.py
     finance.py  fredy_client.py  extraction.py  notify.py  jobs.py
-    sync.py  parse_attrs.py  claude_io.py (pending/save)  cli.py
+    sync.py  parse_attrs.py  claude_io.py (pending/save)  cli.py  backup.py  health.py
     server/
       app.py                      (FastAPI, Login, Routing)
       web/                        (Routen + Jinja2-Templates + HTMX-Partials, static/)
@@ -705,6 +705,7 @@ immo-search/
       mcp/                        (FastMCP-Tools & Ressourcen)
   scripts/                        ← dünne CLI-Einstiege
     sync.py  parse_attrs.py  pending.py  save.py  score.py  notify.py  serve.py
+    lauf.py  backup.py  health.py  zeitplan.py  aufgabe.ps1  install_tasks.ps1   (Betrieb, Phase 6)
     dev_seed.py                   (nur Entwicklung: Testanzeigen in eine Dev-DB laden)
   .claude/
     settings.json
@@ -742,7 +743,8 @@ immo-search/
 | 2 | fertig | Tests: Sync idempotent, URL-Normalisierung, `fetch_filter` je Profil, Preisverlauf, entfernt/reaktiviert, fehlerhafter Job markiert nichts als entfernt. Gegen das echte Fredy geprüft (48 Angebote); Duplikate über Portale (`duplicates.py`). |
 | 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Mit 48 echten Anzeigen: Ist-Miete bei 21 von 22 Anzeigen mit Mietangabe erkannt (95 %). |
 | 4 | fertig | 5 Beispiele gegen Handrechnung (`tests/test_finance.py`). Ziel-Cashflow beim empfohlenen Preis exakt, 500 Zufallsfälle. |
-| 5, 6 | offen | `run.ps1` mit unbeaufsichtigtem Claude-Lauf (`--permission-mode dontAsk`, `.claude/run-settings.json`) ist vorgezogen; Aufgabenplanung, Backup, Überwachung fehlen noch. |
+| 5 | offen | Telegram, E-Mail-Digest, `send_digest_now`, Digest-Button. Danach hängt sich der Telegram-Alarm an die Health-Prüfung. |
+| 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → Claude → Bewertung → Health) mit `--permission-mode dontAsk` und `.claude/run-settings.json`. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. |
 | 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
 | 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
 | 8b, 9 | offen | Objekt-Simulation (Mehrjahresverlauf, Steuern, IRR, Szenarien). |

@@ -17,7 +17,7 @@ import shutil
 import sqlite3
 import subprocess
 import threading
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 
@@ -39,7 +39,7 @@ def projekt_dir(config: Config) -> Path:
     return config.config_dir.parent
 
 
-def einreihen(conn: sqlite3.Connection, config: Config, typ: str, parameter: dict[str, Any] | None, ausgeloest_von: Ausloeser) -> int:
+def _pruefe_parameter(conn: sqlite3.Connection, config: Config, typ: str, parameter: dict[str, Any] | None) -> dict[str, Any]:
     parameter = dict(parameter or {})
     if typ == "lauf":
         profil = parameter.get("profil")
@@ -58,18 +58,75 @@ def einreihen(conn: sqlite3.Connection, config: Config, typ: str, parameter: dic
         parameter = {}
     else:
         raise JobFehler(f"Unbekannter Job-Typ '{typ}'")
-    gleich = conn.execute(
+    return parameter
+
+
+def _gleicher(conn: sqlite3.Connection, typ: str, parameter: dict[str, Any]) -> int | None:
+    row = conn.execute(
         "SELECT id FROM job WHERE typ = ? AND parameter = ? AND status IN ('wartend', 'läuft')",
         (typ, json.dumps(parameter, sort_keys=True)),
     ).fetchone()
+    return None if row is None else row["id"]
+
+
+def _log_pfad(config: Config, job_id: int) -> Path:
+    logdir = projekt_dir(config) / "data" / "logs"
+    logdir.mkdir(parents=True, exist_ok=True)
+    return logdir / f"job-{job_id}.log"
+
+
+def einreihen(conn: sqlite3.Connection, config: Config, typ: str, parameter: dict[str, Any] | None, ausgeloest_von: Ausloeser) -> int:
+    parameter = _pruefe_parameter(conn, config, typ, parameter)
+    gleich = _gleicher(conn, typ, parameter)
     if gleich is not None:
-        return gleich["id"]  # derselbe Job wartet schon oder läuft
+        return gleich  # derselbe Job wartet schon oder läuft
     cur = conn.execute(
         "INSERT INTO job (typ, parameter, ausgeloest_von, status) VALUES (?, ?, ?, 'wartend')",
         (typ, json.dumps(parameter, sort_keys=True), ausgeloest_von),
     )
     conn.commit()
     return cur.lastrowid  # type: ignore[return-value]
+
+
+def direkt_ausfuehren(config: Config, db_path: Path, typ: str, parameter: dict[str, Any] | None,
+                      ausgeloest_von: Ausloeser, ausfuehren=None) -> tuple[int | None, bool]:
+    """Führt einen Job sofort in diesem Prozess aus (Aufgabenplanung), ohne die Warteschlange des Servers.
+
+    Der Job erscheint wie jeder andere unter „Läufe“, mit Log. Er wird gleich als `läuft` angelegt, damit der
+    Runner des Servers ihn nicht ebenfalls aufgreift. Läuft derselbe Job schon, passiert nichts: (None, True).
+    """
+    conn = connect(db_path)
+    try:
+        parameter = _pruefe_parameter(conn, config, typ, parameter)
+        # Reste abgestürzter zeitgesteuerter Läufe (Neustart des PCs) blockieren sonst jeden weiteren
+        grenze = (datetime.now(UTC) - timedelta(seconds=2 * ZEITLIMIT_S[typ])).replace(microsecond=0).isoformat()
+        conn.execute("UPDATE job SET status = 'fehler', ende = ? WHERE status = 'läuft' AND ausgeloest_von = 'zeitplan' "
+                     "AND typ = ? AND start < ?", (now_iso(), typ, grenze))
+        if _gleicher(conn, typ, parameter) is not None:
+            return None, True
+        cur = conn.execute(
+            "INSERT INTO job (typ, parameter, ausgeloest_von, status, start) VALUES (?, ?, ?, 'läuft', ?)",
+            (typ, json.dumps(parameter, sort_keys=True), ausgeloest_von, now_iso()),
+        )
+        job_id: int = cur.lastrowid  # type: ignore[assignment]
+        log_pfad = _log_pfad(config, job_id)
+        conn.execute("UPDATE job SET log_pfad = ? WHERE id = ?", (str(log_pfad), job_id))
+        conn.commit()
+    finally:
+        conn.close()
+    try:
+        ok = (ausfuehren or Runner(config, db_path)._prozess)(typ, parameter, log_pfad)
+    except Exception as exc:  # noqa: BLE001
+        with log_pfad.open("a", encoding="utf-8") as f:
+            f.write(f"\nFEHLER: {exc}\n")
+        ok = False
+    conn = connect(db_path)  # neu öffnen: ein Lauf dauert lange, die erste Verbindung soll nichts sperren
+    try:
+        conn.execute("UPDATE job SET status = ?, ende = ? WHERE id = ?", ("fertig" if ok else "fehler", now_iso(), job_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return job_id, ok
 
 
 def befehl(config: Config, typ: str, parameter: dict[str, Any]) -> list[str]:
@@ -117,8 +174,9 @@ class Runner:
 
     def start(self) -> None:
         conn = connect(self.db_path)
-        # Beim Neustart des Servers abgebrochene Jobs als Fehler markieren
-        conn.execute("UPDATE job SET status = 'fehler', ende = ? WHERE status = 'läuft'", (now_iso(),))
+        # Beim Neustart des Servers abgebrochene Jobs als Fehler markieren (zeitgesteuerte laufen in eigenem Prozess)
+        conn.execute("UPDATE job SET status = 'fehler', ende = ? WHERE status = 'läuft' AND ausgeloest_von != 'zeitplan'",
+                     (now_iso(),))
         conn.commit()
         conn.close()
         self._thread = threading.Thread(target=self._schleife, name="immo-jobs", daemon=True)
@@ -142,9 +200,7 @@ class Runner:
             job = conn.execute("SELECT * FROM job WHERE status = 'wartend' ORDER BY id LIMIT 1").fetchone()
             if job is None:
                 return False
-            logdir = projekt_dir(self.config) / "data" / "logs"
-            logdir.mkdir(parents=True, exist_ok=True)
-            log_pfad = logdir / f"job-{job['id']}.log"
+            log_pfad = _log_pfad(self.config, job["id"])
             conn.execute("UPDATE job SET status = 'läuft', start = ?, log_pfad = ? WHERE id = ?", (now_iso(), str(log_pfad), job["id"]))
             conn.commit()
             parameter = json.loads(job["parameter"] or "{}")

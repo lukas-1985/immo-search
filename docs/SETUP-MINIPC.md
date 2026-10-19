@@ -136,3 +136,29 @@ uv run python scripts/sync.py
 | 8 Claude ohne Oberfläche (Phase 6) | | |
 
 Phase 1 ist fertig, wenn alle drei Portale Angebote liefern und die Punkte 1–7 hier eingetragen sind. Punkt 8 klärt sich mit `run.ps1` in Phase 6.
+
+## 9. Eingerichteter Stand (18.10.2026)
+
+So ist Fredy für das Profil `mfh-kl` eingerichtet. Alles wurde über Fredys API gesetzt, mit den Zugangsdaten aus `.env`.
+
+**Jobs** (Kaufart `buy`, ohne Benachrichtigungskanäle; Profil per `job_prefix: "MFH KL"`):
+
+| Job | Such-URL | Herkunft der Parameter |
+|---|---|---|
+| MFH KL – IS24 | `https://www.immobilienscout24.de/Suche/radius/mehrfamilienhaus-kaufen?centerofsearchaddress=Kaiserslautern;;;;;&geocoordinates=49.4447;7.7690;5.0&price=300000.0-2000000.0&sorting=2` | Stiftsplatz-Koordinaten, 5 km. Im Browser zeigt IS24 eine Bot-Abfrage, Fredy nutzt die Mobile-API und kommt durch. |
+| MFH KL – Immowelt | `https://www.immowelt.de/classified-search?distributionTypes=Buy&estateTypes=House&estateSubTypes=Multi_Family_House&locations=AD08DE4605&priceMin=300000&priceMax=2000000&order=DateDesc` | Ortskennung `AD08DE4605` = Stadt Kaiserslautern (Umkreis ginge nur über eine von Immowelt erzeugte Fläche). Haustyp-Wert aus dem Filterformular. Liefert derzeit nichts (HTTP 403). |
+| MFH KL – Kleinanzeigen | `https://www.kleinanzeigen.de/s-haus-kaufen/kaiserslautern/preis:300000:2000000/c208l5466r5+haus_kaufen.haustyp_s:mehrfamilienhaus` | Ortskennung `5466` aus `/s-ort-empfehlungen.json?query=Kaiserslautern`, `r5` = 5 km. |
+
+**Einstellungen:** `analyticsEnabled: false`, `interval: 60`, `workingHours: 07:00–22:00 Europe/Berlin`, Benutzereinstellung `provider_details: [immoscout, immowelt, kleinanzeigen]`. Unverändert: `listingRetentionDays: 14`, siehe offener Punkt unten.
+
+**Nützliche Endpunkte von Fredy 29.3** (aus dem Quellcode im Container, `docker exec fredy ls /fredy/lib/api/routes`):
+
+| Zweck | Endpunkt |
+|---|---|
+| Job anlegen/ändern | `POST /api/jobs` mit `{name, enabled, dealType: "buy", blacklist: [], notificationAdapter: [], provider: [{id, name, url, enabled: true}]}` (ohne `jobId` = neu) |
+| Alle Jobs sofort starten | `POST /api/jobs/startAll` |
+| Allgemeine Einstellungen | `GET`/`POST /api/admin/generalSettings` (nur gesendete Schlüssel werden geändert) |
+| Detailseiten je Portal laden | `POST /api/user/settings/provider-details` mit `{provider_details: [...]}` |
+| Details eines Angebots nachladen | `POST /api/listings/<id>/details` |
+
+**Offener Punkt – Aufbewahrung:** Fredy löscht Angebote nach `listingRetentionDays` (14 Tage). Noch ungeprüft: Liefert Fredy ein solches Angebot dann nicht mehr, und markiert unser Sync es als „entfernt“, obwohl es noch online ist? Prüfen, sobald die ersten Angebote 14 Tage alt sind (ab 01.11.2026). Gegebenenfalls `listingRetentionDays` erhöhen oder in `sync` das Entfernen anders erkennen.

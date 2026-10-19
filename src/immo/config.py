@@ -83,9 +83,29 @@ class DigestSchedule(_Strict):
     at: str = Field("07:30", pattern=_HHMM)
 
 
+class BackupSchedule(_Strict):
+    at: str = Field("03:00", pattern=_HHMM)
+
+
 class ScheduleSettings(_Strict):
     run: RunSchedule = RunSchedule()
     digest: DigestSchedule = DigestSchedule()
+    backup: BackupSchedule = BackupSchedule()
+
+
+class BackupSettings(_Strict):
+    ziel: str = "data/backup"            # relativ zum Projektordner oder absolut (NAS, Cloud-Ordner)
+    aufbewahrung_tage: int = Field(14, ge=1)
+    mindestens_behalten: int = Field(3, ge=1)  # so viele neueste Backups bleiben immer, auch wenn älter
+    fredy_db_dir: str | None = None      # Fredys /db-Bind-Mount; None = nicht sichern
+
+
+class HealthSettings(_Strict):
+    portale: list[str] = ["immoscout", "immowelt", "kleinanzeigen"]
+    max_tage_ohne_angebot: int = Field(3, ge=1)    # je Portal mindestens 1 neues Angebot in diesem Zeitraum
+    max_stunden_ohne_sync: int = Field(12, ge=1)   # Nachtpause 22–07 Uhr ist schon 9 h
+    max_stunden_ohne_backup: int = Field(36, ge=1)
+    server_timeout_s: float = Field(5, gt=0)
 
 
 class WorkflowSettings(_Strict):
@@ -132,6 +152,8 @@ class Settings(_Strict):
     server: ServerSettings = ServerSettings()
     notify: NotifySettings = NotifySettings()
     schedule: ScheduleSettings = ScheduleSettings()
+    backup: BackupSettings = BackupSettings()
+    health: HealthSettings = HealthSettings()
     workflow: WorkflowSettings = WorkflowSettings()
     finance_defaults: FinanceAssumptions = FinanceAssumptions()
     grunderwerbsteuer: dict[str, float] = {}
@@ -258,6 +280,11 @@ class Config(BaseModel):
 
     def db_path(self) -> Path:
         p = Path(self.settings.database.path)
+        return p if p.is_absolute() else self.config_dir.parent / p
+
+    def projekt_pfad(self, pfad: str) -> Path:
+        """Pfad aus der Konfiguration: relativ zum Projektordner oder absolut."""
+        p = Path(pfad)
         return p if p.is_absolute() else self.config_dir.parent / p
 
     def finance_for(self, profile: Profile) -> FinanceAssumptions:

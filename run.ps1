@@ -1,4 +1,4 @@
-# Ein Lauf der Immo-Suche: Sync -> Regeln -> Claude-Extraktion -> Bewertung.
+# Ein Lauf der Immo-Suche: Sync -> Regeln -> Claude-Extraktion -> Bewertung -> Health-Pruefung.
 #   powershell -ExecutionPolicy Bypass -File run.ps1 [-Profil mfh-kl]
 #   powershell -ExecutionPolicy Bypass -File run.ps1 -Listing 42 -Reextract
 #
@@ -72,6 +72,14 @@ function Claude-Extraktion([string]$Prompt) {
     Get-Content $logdatei, "$logdatei.err" -Encoding UTF8 -ErrorAction SilentlyContinue | Write-Host
 }
 
+function Health {
+    # Nur protokollieren (run_log); ein Problem hier macht den Lauf nicht zum Teilfehler
+    Write-Host ""
+    Write-Host "== Health ($(Get-Date -Format 'HH:mm:ss')): uv run python scripts/health.py"
+    & uv run python scripts/health.py
+    if ($LASTEXITCODE -ne 0) { Write-Host "WARNUNG: Health-Pruefung fehlgeschlagen (Exit-Code $LASTEXITCODE)." }
+}
+
 try {
     if ($Listing -gt 0) {
         Claude-Extraktion "/immo-analyse --listing=$Listing --reextract --nur-extraktion"
@@ -81,6 +89,7 @@ try {
         Claude-Extraktion ("/immo-analyse " + $Profil + " --nur-extraktion").Replace("  ", " ")
     }
     Schritt "Bewertung" (@("scripts/score.py") + $profilArgs)
+    if ($Listing -le 0) { Health }
 } finally {
     $lock.Close()
 }
