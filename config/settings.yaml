@@ -45,8 +45,8 @@ workflow:
 
 # Standard-Finanzannahmen; Profile überschreiben einzelne Werte
 finance_defaults:
-  zins: 0.038
-  tilgung: 0.02
+  zins: 0.048
+  tilgung: 0.015
   notar_grundbuch: 0.02
   makler_default: 0.0357
   bewirtschaftung_quote: 0.20
@@ -71,7 +71,7 @@ grunderwerbsteuer:       # Stand regelmäßig prüfen
   SH: 0.065
   TH: 0.05
 
-steuern:
-  grenzsteuersatz: 0.42  # PLATZHALTER
-  gebaeudeanteil: 0.75
-  afa_satz: auto
+steuern:                 # vereinfacht: Cashflow nach Steuern (Jahr 1), keine Steuerberatung
+  grenzsteuersatz: 0.42  # persönlicher Grenzsteuersatz (ohne Soli/Kirchensteuer)
+  gebaeudeanteil: 0.80   # Anteil Gebäude an Kaufpreis + Nebenkosten (Rest Grund und Boden); in der Simulation änderbar
+  afa_satz: 0.02         # lineare AfA; in der Simulation änderbar
