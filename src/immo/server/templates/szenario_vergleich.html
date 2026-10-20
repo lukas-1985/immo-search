@@ -16,7 +16,7 @@
   {% endfor %}
   <tr><td colspan="{{ spalten|length + 1 }}" class="klein"><b>Ergebnis</b></td></tr>
   {% for name, la in os.KENNZAHLEN.items() %}{% set label, art = la %}
-  <tr {% if name in ("cashflow_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}><td>{{ label }}</td>{% for s in spalten %}<td class="r">{{ fmt(s.werte[name], art) }}</td>{% endfor %}</tr>
+  <tr {% if name in ("cashflow_monat", "cashflow_nach_steuern_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}><td>{{ label }}</td>{% for s in spalten %}<td class="r">{{ fmt(s.werte[name], art) }}</td>{% endfor %}</tr>
   {% endfor %}
   <tr><td>Ausschluss</td>{% for s in spalten %}<td class="r klein">{{ s.werte.ausgeschlossen or "–" }}</td>{% endfor %}</tr>
   <tr><td>Seit dem Speichern abweichend</td>{% for s in spalten %}<td class="r klein warn">{{ (s.abweichungen or [])|join(", ") }}</td>{% endfor %}</tr>

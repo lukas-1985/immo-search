@@ -52,6 +52,10 @@ def _cashflow_monat(ctx: Kontext) -> KpiWert:
     return _miete(ctx, ctx.ergebnis.cashflow_monat)
 
 
+def _cashflow_nach_steuern(ctx: Kontext) -> KpiWert:
+    return _miete(ctx, ctx.ergebnis.cashflow_nach_steuern_monat)
+
+
 def _kaufpreisempfehlung(ctx: Kontext) -> KpiWert:
     ke = ctx.ergebnis.kaufpreisempfehlung
     return None if ke.preis is None or ke.qualitaet is None else (ke.preis, ke.qualitaet)
@@ -80,6 +84,8 @@ REGISTER: dict[str, Kpi] = {
         Kpi("faktor", "Kaufpreis / Jahresnettokaltmiete", "fach", _faktor),
         Kpi("nettoanfangsrendite", "(Miete − Bewirtschaftung) / (Kaufpreis + Nebenkosten)", "Anteil", _nettoanfangsrendite),
         Kpi("cashflow_monat", "(Miete − Bewirtschaftung − Kapitaldienst) / 12", "€/Monat", _cashflow_monat),
+        Kpi("cashflow_nach_steuern", "Cashflow − Grenzsteuersatz · (Miete − Bewirtschaftung − Zinsen − AfA), pro Monat (vereinfacht)",
+            "€/Monat", _cashflow_nach_steuern),
         Kpi("kaufpreisempfehlung", "Kaufpreis für den Ziel-Cashflow", "€", _kaufpreisempfehlung),
         Kpi("preisabstand", "(Angebotspreis − Empfehlung) / Angebotspreis; positiv = Angebot liegt darüber", "Anteil", _preisabstand),
         Kpi("preis_m2", "Kaufpreis / Wohnfläche", "€/m²", _preis_m2),

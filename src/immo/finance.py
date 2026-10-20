@@ -11,6 +11,10 @@ Größen (siehe PLAN.md 5.6):
 
     EK = "nebenkosten" heißt EK = P · n, also D = P + S und P* = (M − B − 12·C) / k − S.
 
+Steuern (vereinfacht, Jahr 1, PLAN.md 5.7): AfA = Gebäudeanteil · (P + Nebenkosten + S) · AfA-Satz,
+    Einkünfte E = M − B − Zinsen − AfA, Steuer = Grenzsteuersatz · E (negativ = Ersparnis, Verluste voll verrechnet),
+    Cashflow nach Steuern = CF − Steuer. Tilgung ist nicht absetzbar. Score und Kaufpreisempfehlung bleiben vor Steuern.
+
 Objekt-Simulation (Phase 8b): `simulate(basis, **aenderungen)` vorwärts, `loese()` rechnet eine Größe aus einem Zielwert zurück.
 """
 
@@ -50,6 +54,9 @@ class Annahmen:
     instandhaltung_eur_m2_jahr: float
     ziel_cashflow_monat: float
     tilgung_einrechnen: bool
+    grenzsteuersatz: float = 0.0
+    gebaeudeanteil: float = 0.0
+    afa_satz: float = 0.0
     makler_quelle: Literal["anzeige", "default"] = "default"
     hinweise: tuple[str, ...] = ()
 
@@ -107,6 +114,11 @@ class Ergebnis:
     cashflow_jahr: float | None
     cashflow_monat: float | None
     kaufpreisempfehlung: Kaufpreisempfehlung
+    afa_jahr: float = 0.0
+    einkuenfte_jahr: float | None = None  # zu versteuern: Miete − Bewirtschaftung − Zinsen − AfA
+    steuer_jahr: float | None = None  # negativ = Steuerersparnis
+    cashflow_nach_steuern_jahr: float | None = None
+    cashflow_nach_steuern_monat: float | None = None
     hinweise: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
@@ -165,6 +177,10 @@ def simulate(basis: Annahmen, **aenderungen: Any) -> Ergebnis:
     b = bewirtschaftung(a)
     m = a.miete_ist
     cf = None if m is None else m - b - zins_j - (tilg_j if a.tilgung_einrechnen else 0.0)  # type: ignore[operator]
+    afa = a.gebaeudeanteil * (a.kaufpreis + nk + a.sanierung_sofort) * a.afa_satz
+    einkuenfte = None if m is None else m - b - zins_j - afa  # type: ignore[operator]
+    steuer = None if einkuenfte is None else a.grenzsteuersatz * einkuenfte
+    cf_st = None if cf is None else cf - steuer  # type: ignore[operator]
     return Ergebnis(
         annahmen=a,
         nebenkosten=nk,
@@ -180,6 +196,11 @@ def simulate(basis: Annahmen, **aenderungen: Any) -> Ergebnis:
         cashflow_jahr=cf,
         cashflow_monat=None if cf is None else cf / 12,
         kaufpreisempfehlung=kaufpreisempfehlung(a),
+        afa_jahr=afa,
+        einkuenfte_jahr=einkuenfte,
+        steuer_jahr=steuer,
+        cashflow_nach_steuern_jahr=cf_st,
+        cashflow_nach_steuern_monat=None if cf_st is None else cf_st / 12,
         hinweise=list(a.hinweise),
     )
 
@@ -281,6 +302,7 @@ def annahmen_fuer(
 ) -> Annahmen:
     """Basis-Annahmen eines Angebots: Profil-Finanzannahmen, Werte aus der Anzeige, Schätzung als Rückfall."""
     f = config.finance_for(profile)
+    st = config.settings.steuern
     fehlend = [n for n in _PFLICHT if getattr(f, n) is None]
     if fehlend:
         raise ConfigError(f"Profil '{profile.id}': Finanzannahme(n) fehlen: {', '.join(fehlend)} (Profil oder settings.yaml → finance_defaults)")
@@ -313,5 +335,8 @@ def annahmen_fuer(
         instandhaltung_eur_m2_jahr=f.instandhaltung_eur_m2_jahr or 0.0,
         ziel_cashflow_monat=profile.kaufpreisempfehlung.ziel_cashflow_monat,
         tilgung_einrechnen=profile.kaufpreisempfehlung.tilgung_einrechnen,
+        grenzsteuersatz=st.grenzsteuersatz,
+        gebaeudeanteil=st.gebaeudeanteil,
+        afa_satz=st.afa_satz,
         hinweise=tuple(hinweise),
     )

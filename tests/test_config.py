@@ -45,3 +45,10 @@ def test_invalid_profiles_are_rejected(config_dir, text, expected):
 def test_unknown_profile(config):
     with pytest.raises(ConfigError, match="nicht gefunden"):
         config.active_profiles("gibt-es-nicht")
+
+
+def test_afa_satz_auto_aus_alter_settings():
+    from immo.config import SteuernSettings
+
+    assert SteuernSettings(afa_satz="auto").afa_satz == 0.02
+    assert SteuernSettings().gebaeudeanteil == 0.80

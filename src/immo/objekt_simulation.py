@@ -46,9 +46,11 @@ PARAMETER: tuple[Parameter, ...] = (
     Parameter("bewirtschaftung_quote", "Bewirtschaftung (Anteil der Miete)", "Kosten und Ziel", "pct"),
     Parameter("instandhaltung_eur_m2_jahr", "Instandhaltung (€/m² und Jahr)", "Kosten und Ziel", "eur"),
     Parameter("ziel_cashflow_monat", "Ziel-Cashflow (€/Monat)", "Kosten und Ziel", "eur"),
+    Parameter("gebaeudeanteil", "Gebäudeanteil (an Kaufpreis + Nebenkosten)", "Steuern (vereinfacht)", "pct"),
+    Parameter("afa_satz", "AfA-Satz", "Steuern (vereinfacht)", "pct"),
 )
 PARAM: dict[str, Parameter] = {p.name: p for p in PARAMETER}
-GRUPPEN = ("Kauf", "Miete", "Finanzierung", "Kosten und Ziel")
+GRUPPEN = ("Kauf", "Miete", "Finanzierung", "Kosten und Ziel", "Steuern (vereinfacht)")
 
 ZIELE: dict[str, str] = {
     "cashflow_monat": "Cashflow / Monat (€)",
@@ -64,6 +66,10 @@ KENNZAHLEN: dict[str, tuple[str, str]] = {
     "darlehen": ("Darlehen", "eur"),
     "rate_monat": ("Rate / Monat", "eur"),
     "cashflow_monat": ("Cashflow / Monat", "eur"),
+    "afa_jahr": ("AfA / Jahr", "eur"),
+    "einkuenfte_jahr": ("Steuerliches Ergebnis / Jahr", "eur"),
+    "steuer_jahr": ("Steuer / Jahr (− = Ersparnis)", "eur"),
+    "cashflow_nach_steuern_monat": ("Cashflow nach Steuern / Monat", "eur"),
     "bruttorendite": ("Bruttorendite", "pct"),
     "faktor": ("Faktor", "zahl"),
     "nettoanfangsrendite": ("Nettoanfangsrendite", "pct"),
@@ -74,7 +80,7 @@ KENNZAHLEN: dict[str, tuple[str, str]] = {
     "score": ("Score", "zahl"),
 }
 # Färbung der Abweichung: +1 = mehr ist besser, −1 = weniger ist besser, fehlt = neutral
-RICHTUNG: dict[str, int] = {"cashflow_monat": 1, "bruttorendite": 1, "nettoanfangsrendite": 1, "kaufpreisempfehlung": 1,
+RICHTUNG: dict[str, int] = {"cashflow_monat": 1, "cashflow_nach_steuern_monat": 1, "steuer_jahr": -1, "bruttorendite": 1, "nettoanfangsrendite": 1, "kaufpreisempfehlung": 1,
                             "kpe_zins_plus": 1, "kpe_zins_minus": 1, "score": 1, "faktor": -1, "preisabstand": -1}
 MAX_VERGLEICH = 3
 MAX_NAME = 80
@@ -171,7 +177,9 @@ def kennzahlen(e: Ergebnis, b: Bewertung) -> dict[str, Any]:
     ke = e.kaufpreisempfehlung
     return {
         "nebenkosten": e.nebenkosten, "gesamtinvestition": e.gesamtinvestition, "darlehen": e.darlehen,
-        "rate_monat": e.rate_monat, "cashflow_monat": e.cashflow_monat, "bruttorendite": e.bruttorendite,
+        "rate_monat": e.rate_monat, "cashflow_monat": e.cashflow_monat, "afa_jahr": e.afa_jahr,
+        "einkuenfte_jahr": e.einkuenfte_jahr, "steuer_jahr": e.steuer_jahr,
+        "cashflow_nach_steuern_monat": e.cashflow_nach_steuern_monat, "bruttorendite": e.bruttorendite,
         "faktor": e.faktor, "nettoanfangsrendite": e.nettoanfangsrendite, "kaufpreisempfehlung": ke.preis,
         "kpe_zins_plus": ke.zins_plus, "kpe_zins_minus": ke.zins_minus, "preisabstand": ke.preisabstand,
         "score": b.score, "kpe_status": ke.status, "kpe_text": ke.text, "kpe_qualitaet": ke.qualitaet,
@@ -338,6 +346,8 @@ def abweichungen(gespeichert: dict[str, Any] | None, aktuell: dict[str, Any]) ->
         return []
     out = []
     for n, (label, art) in KENNZAHLEN.items():
+        if n not in gespeichert:  # Kennzahl gab es beim Speichern noch nicht
+            continue
         a, b = gespeichert.get(n), aktuell.get(n)
         if (a is None) != (b is None) or (a is not None and not math.isclose(a, b, rel_tol=1e-6, abs_tol=0.5 if art == "eur" else 1e-6)):
             out.append(label)

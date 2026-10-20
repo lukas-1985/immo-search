@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 19.10.2026 · Status: Phasen 2–4, 7, 8 und 8b umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 offen, 9 optional.
+> Stand: 20.10.2026 · Status: Phasen 2–4, 7, 8, 8b und 8c (Steuern) umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 offen, 9 optional.
 
 ---
 
@@ -271,6 +271,7 @@ Jede Kennzahl ist eine benannte Funktion. Sie liefert `(wert, qualität)`, wobei
 | `preis_m2` | Kaufpreis / Wohnfläche | Fläche |
 | `mietpotenzial` | (Marktmiete − Ist-Miete) / Ist-Miete | Marktmiete (Konfiguration/Mietspiegel) |
 | `preis_m2_vs_markt` | Preis/m² ggü. lokalem Median (Fredy-Benchmark) | Fredy-Daten |
+| `cashflow_nach_steuern` | Cashflow − Steuer, pro Monat (vereinfacht, siehe 5.7). Verfügbar, im Profil `mfh-kl` nicht gewichtet | + Finanzierung, Steuern |
 | `kaufpreisempfehlung` | Kaufpreis, bei dem `cashflow_monat` = Ziel-Cashflow, siehe 5.6 | + Finanzierung |
 | `preisabstand` | (Angebotspreis − Kaufpreisempfehlung) / Angebotspreis. Positiv = Angebot liegt darüber. | dito |
 
@@ -316,10 +317,10 @@ grunderwerbsteuer:       # Tabelle je Bundesland, regelmäßig prüfen
   BY: 0.035
   NW: 0.065
   # …
-steuern:                 # vorgehalten für „Cashflow nach Steuern“ (Phase 9, optional); in 8b nicht genutzt
-  grenzsteuersatz: 0.42  # PLATZHALTER, persönlicher Satz inkl. Soli
-  gebaeudeanteil: 0.75   # Anteil Gebäude am Kaufpreis (Rest Grund & Boden, nicht abschreibbar)
-  afa_satz: auto         # auto = nach Baujahr (2,5 % vor 1925, 2 % bis 2022, 3 % ab 2023) oder fester Wert
+steuern:                 # vereinfachter Cashflow nach Steuern (Jahr 1), siehe 5.7
+  grenzsteuersatz: 0.42  # persönlicher Grenzsteuersatz (ohne Soli/Kirchensteuer)
+  gebaeudeanteil: 0.80   # Anteil Gebäude an Kaufpreis + Nebenkosten (Rest Grund und Boden); in der Simulation änderbar
+  afa_satz: 0.02         # lineare AfA, fest (kein „auto“ nach Baujahr); in der Simulation änderbar
 ```
 
 ### 5.6 Kaufpreisempfehlung (Preis für neutralen Cashflow)
@@ -354,6 +355,22 @@ Empfehlung    P* = ( (M − B − 12·C) / k + EK − S ) / (1 + n)
 - Zusätzlich wird die **Zinsempfindlichkeit** gespeichert: P* bei Zins −0,5 und +0,5 Prozentpunkte. Das zeigt, wie stark die Empfehlung von der Zinsannahme abhängt.
 
 **Hinweis:** Die Empfehlung ist eine Rechengröße aus deinen Annahmen, keine Marktbewertung. Sie sagt, bis zu welchem Preis das Objekt zu deinen Bedingungen passt, nicht was es wert ist. Den Marktvergleich liefert `preis_m2_vs_markt`.
+
+### 5.7 Steuern (vereinfacht, Phase 8c)
+
+Cashflow nach Steuern für **Jahr 1**, Entscheidungen vom 20.10.2026. Es ist eine Näherung, keine Steuerberatung, und in der Oberfläche so gekennzeichnet.
+
+```
+AfA           = Gebäudeanteil · (P + P·n + S) · AfA-Satz          (Nebenkosten und Sanierung werden mit abgeschrieben)
+Einkünfte  E  = M − B − Zinsen − AfA                               (Tilgung ist nicht absetzbar)
+Steuer        = Grenzsteuersatz · E                                (E < 0 → negative Steuer = Ersparnis, Verluste voll verrechnet)
+CF n. St.     = CF − Steuer
+```
+
+- Werte aus `settings.yaml → steuern`: Grenzsteuersatz 42 %, Gebäudeanteil 80 %, AfA-Satz 2 %, alle zentral für alle Profile. In der Objekt-Simulation lassen sich Gebäudeanteil und AfA-Satz übersteuern, der Grenzsteuersatz nicht.
+- Wirkung: Anzeige in Detailansicht, Objekt-Simulation und Szenario-Vergleich, dazu die KPI `cashflow_nach_steuern`. **Score, Ranking und Kaufpreisempfehlung bleiben vor Steuern**, solange die KPI nicht im Profil gewichtet wird. Die Zielwert-Rückrechnung bietet bewusst keinen „Cashflow nach Steuern“ an.
+- Die Steuerparameter gehören zum `config_hash` (`SCORING_VERSION` 2). Nach einer Änderung meldet die Simulation „Bewertung veraltet“, bis neu bewertet wurde.
+- Ohne Miete gibt es keine Steuerrechnung.
 
 ---
 
@@ -530,6 +547,7 @@ Ein Angebot mit eigenen Annahmen durchrechnen, nur für **Jahr 1**, also dieselb
 | Miete | Jahresnettokaltmiete wahlweise als €/Jahr oder €/m² und Monat (Umrechnung über die Wohnfläche), Wohnfläche (m²) |
 | Finanzierung | Eigenkapital (€ oder „= Kaufnebenkosten“), Zins, Tilgung, Tilgung einrechnen ja/nein |
 | Kosten und Ziel | Bewirtschaftungsquote, Instandhaltung (€/m²/Jahr), Ziel-Cashflow pro Monat (für die Kaufpreisempfehlung) |
+| Steuern (vereinfacht, 8c) | Gebäudeanteil, AfA-Satz (Grenzsteuersatz sichtbar, aber fest aus `settings.yaml`); Ergebnis zusätzlich: AfA, steuerliches Ergebnis, Steuer, Cashflow nach Steuern (5.7) |
 
 *Zielwert-Rückrechnung:* Eine Kennzahl auf einen Wunschwert setzen, eine Größe auswählen, die daraus berechnet wird, dann „Berechnen“. Der berechnete Wert wird als geänderter Parameter übernommen, alle anderen Kennzahlen rechnen damit neu. Es wird immer nur eine Größe gelöst, alle anderen Eingaben bleiben fest. Alle Formeln sind geschlossen (linear, ohne Iteration). Bezeichnungen wie in 5.6: M Jahresmiete, q Bewirtschaftungsquote, i Instandhaltung €/m², A Wohnfläche, B = q·M + i·A, n Nebenkostenquote, S Sanierung, EK Eigenkapital, k = Zins + Tilgung (bzw. nur Zins), D = max(0, P·(1+n) + S − EK), C Ziel-Cashflow pro Monat.
 
@@ -553,7 +571,7 @@ Ein Angebot mit eigenen Annahmen durchrechnen, nur für **Jahr 1**, also dieselb
 - Szenarien hängen am Angebot und am Profil. Sie ändern weder Score noch Ranking noch das Profil.
 - **Kein MCP-Zugriff** (Entscheidung 19.10.2026). Rechnen und Szenarien gibt es nur in der Oberfläche.
 
-*Nicht in 8b* (verschoben nach Phase 9, optional): Mehrjahresverlauf, Zinsbindung und Anschlusszins, zweites Darlehen, Steuern/AfA, IRR, Sensitivität/Tornado, Leerstand und Zielmiete mit Zeitpunkt, Regler mit Sofort-Neuberechnung, MCP `simulate_listing`/`get_scenarios`.
+*Nicht in 8b* (verschoben nach Phase 9, optional): Mehrjahresverlauf, Zinsbindung und Anschlusszins, zweites Darlehen, Steuern über Jahr 1 hinaus, IRR, Sensitivität/Tornado, Leerstand und Zielmiete mit Zeitpunkt, Regler mit Sofort-Neuberechnung, MCP `simulate_listing`/`get_scenarios`.
 
 **5. Was-wäre-wenn: Ranking-Simulation**
 - Profil wählen, dann per Regler und Feldern KPI-Gewichte, Normalisierungsgrenzen, Ausschluss-Schwellen und alle Finanzannahmen des Profils (inkl. Ziel-Cashflow) ändern
@@ -740,7 +758,8 @@ immo-search/
 | **7 – Server: Lesen** | `immo-server` mit Login, Übersicht, Liste, Detailansicht. MCP mit allen Lese-Werkzeugen, Tailscale-Zugang, Links in Telegram/Digest | Oberfläche ist zu Hause und unterwegs per VPN nutzbar. Claude Code/Desktop beantwortet Fragen wie „Top 5 MFH über 6 %?“ über MCP. |
 | **8 – Server: Aktionen** | Status-Workflow & Notizen, Job-Runner (Lauf, Neu auswerten, Digest), Ranking-Simulation, Konfigurations-Editor mit Prüfung, Diff, Backup und Neuberechnung. MCP-Schreib-Werkzeuge | Alle Aktionen funktionieren in Oberfläche und MCP, jede Änderung ist protokolliert. Eine Konfigurationsänderung in der Oberfläche führt zu korrekt neu berechneten Scores und Kaufpreisempfehlungen. |
 | **8b – Objekt-Simulation** | Eigene Seite je Angebot und Profil: Kauf, Miete, Finanzierung und Kosten ändern, Jahr-1-Kennzahlen und Score neu rechnen. Zielwert-Rückrechnung (Cashflow, Bruttorendite, Nettoanfangsrendite → Kaufpreis, Miete, Zins, Eigenkapital) über `finance.loese()`. Szenarien in Tabelle `scenario` (speichern, laden, umbenennen, löschen, bis zu 3 vergleichen), Liste in der Detailansicht. Kein MCP | Ohne Änderungen stimmt die Simulation exakt mit der Detailansicht überein. Jede Rückrechnung ergibt eingesetzt in `simulate()` exakt den Zielwert (3 Handrechnungen + Zufallsfälle), nicht erreichbare Ziele werden gemeldet. Szenarien lassen sich speichern, vergleichen und löschen, Score und Ranking bleiben unverändert. |
-| **9 – Ausbau** (optional) | Karte (Leaflet/OSM), Lernen aus deinem Status-Verlauf (Gewichte vorschlagen), weitere KPIs (Mietpotenzial mit Mietspiegel), weitere Portale/Profile. Aus 8b verschoben: Mehrjahresverlauf, Zinsbindung/Anschlusszins, zweites Darlehen, Steuern/AfA, IRR, Sensitivität (Tornado), Leerstand/Zielmiete mit Zeitpunkt, MCP `simulate_listing`/`get_scenarios` | nach Bedarf |
+| **8c – Steuern (vereinfacht)** | Cashflow nach Steuern für Jahr 1 (5.7): AfA, Einkünfte, Steuer; KPI `cashflow_nach_steuern`; Anzeige in Detailansicht, Simulation (Gebäudeanteil und AfA-Satz änderbar) und Vergleich | Handrechnung in `tests/test_finance.py` stimmt; Score und Kaufpreisempfehlung unverändert vor Steuern |
+| **9 – Ausbau** (optional) | Karte (Leaflet/OSM), Lernen aus deinem Status-Verlauf (Gewichte vorschlagen), weitere KPIs (Mietpotenzial mit Mietspiegel), weitere Portale/Profile. Aus 8b verschoben: Mehrjahresverlauf, Zinsbindung/Anschlusszins, zweites Darlehen, Steuern über Jahr 1 hinaus, IRR, Sensitivität (Tornado), Leerstand/Zielmiete mit Zeitpunkt, MCP `simulate_listing`/`get_scenarios` | nach Bedarf |
 
 > Die Phasen 7–8 bauen auf der DB aus den Phasen 2–4 auf. Mit einfachen Ansichten kann Phase 7 auch parallel zu 5–6 entstehen.
 
@@ -757,6 +776,7 @@ immo-search/
 | 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
 | 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
 | 8b | fertig (19.10.2026, Umfang verkleinert) | `finance.loese()` (geschlossene Formeln), `objekt_simulation.py` (Basis wie `scoring.bewerte`, Formular, Szenarien), Seiten `/angebot/<id>/simulation` und `/angebot/<id>/vergleich`, Szenarien in der Detailansicht. Tests `tests/test_objekt_simulation.py`: 8 Handrechnungen, 1 500 Zufallsfälle (Zielwert exakt getroffen), ohne Änderung = gespeicherte Bewertung, Szenarien ändern keine Bewertung. Im Browser mit einer Kopie des echten Bestands geprüft (Angebot 24: Break-even-Zins 4,01 %, Kaufpreis für Cashflow 0 = Empfehlung). |
+| 8c | fertig (20.10.2026) | Steuern vereinfacht (5.7). Tests: 2 Handrechnungen (Verlust → Ersparnis, Gewinn, Tilgung nicht absetzbar) und Simulation (Gebäudeanteil/AfA übersteuert). Angebot 24 in der DB-Kopie: AfA 23 266 €, Ersparnis 5 740 €, Cashflow −899 → −420 €/Monat nach Steuern. |
 | 9 | offen | optional |
 
 Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), `83c1df9` (Phasen 7+8), `e1969a9` (Phase 6), `d6549f0` (Phase 8b).

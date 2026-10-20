@@ -67,6 +67,7 @@
         {% endfor %}
         {% endfor %}
         <tr><td class="klein">Grunderwerbsteuer · Notar/Grundbuch</td><td class="r klein" colspan="2">{{ a.grunderwerbsteuer|pct(1) }} · {{ a.notar_grundbuch|pct(1) }} (fest aus dem Profil)</td><td></td></tr>
+        <tr><td class="klein">Grenzsteuersatz</td><td class="r klein" colspan="2">{{ a.grenzsteuersatz|pct(1) }} (fest aus settings.yaml)</td><td></td></tr>
       </table>
       <div class="zeile" style="margin-top:10px">
         <button name="aktion" value="rechnen">Neu rechnen</button>
@@ -97,7 +98,7 @@
           <tr><th>Kennzahl</th><th class="r">Ausgangswert</th><th class="r">Simulation</th><th class="r">Abweichung</th></tr>
           {% for name, la in os.KENNZAHLEN.items() %}{% set label, art = la %}
           {% set k0, k1 = r.basis[name], r.simulation[name] %}
-          <tr {% if name in ("cashflow_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}>
+          <tr {% if name in ("cashflow_monat", "cashflow_nach_steuern_monat", "kaufpreisempfehlung", "score") %}style="font-weight:600"{% endif %}>
             <td>{{ label }}</td><td class="r">{{ fmt(k0, art) }}</td>
             <td class="r {% if name == 'cashflow_monat' and k1 is not none %}{{ 'gut' if k1 >= a.ziel_cashflow_monat else 'schlecht' }}{% endif %}">{{ fmt(k1, art) }}</td>
             <td class="r">{{ diff(k0, k1, art, os.RICHTUNG.get(name, 0)) }}</td></tr>
@@ -109,6 +110,9 @@
           Kaufpreisempfehlung für Ziel-Cashflow {{ a.ziel_cashflow_monat|eur }}/Monat, Qualität {{ s1.kpe_qualitaet or "–" }}.
           {% if s1.ausgeschlossen %}<span class="pill schlecht">würde ausgeschlossen: {{ s1.ausgeschlossen }}</span>{% elif r.basis.ausgeschlossen %}<span class="pill gut">nicht mehr ausgeschlossen</span>{% endif %}
         </p>
+        <p class="klein">Steuern vereinfacht (Jahr 1): AfA = Gebäudeanteil · (Kaufpreis + Nebenkosten + Sanierung) · AfA-Satz;
+          Steuer = Grenzsteuersatz · (Miete − Bewirtschaftung − Zinsen − AfA), Verluste voll verrechnet; Tilgung nicht absetzbar.
+          Näherung, keine Steuerberatung. Score und Kaufpreisempfehlung rechnen vor Steuern.</p>
         {% for h in r.hinweise %}<div class="klein warn">• {{ h }}</div>{% endfor %}
       </div>
 

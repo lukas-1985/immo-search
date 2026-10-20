@@ -20,7 +20,7 @@ from .extraction import field_values, load_schema
 from .finance import Annahmen, Qualitaet, annahmen_fuer, simulate
 from .kpis import REGISTER, Kontext, KpiWert, as_json, berechne_alle, normalisiere
 
-SCORING_VERSION = 1  # erhöhen, wenn sich die Rechenlogik ändert → config_hash ändert sich mit
+SCORING_VERSION = 2  # erhöhen, wenn sich die Rechenlogik ändert → config_hash ändert sich mit
 LISTING_FELDER = ("preis", "flaeche", "zimmer", "baujahr", "plz", "ort", "provider", "energieklasse")
 QUELLE_QUALITAET: dict[str, Qualitaet] = {"portal": "exakt", "regel": "extrahiert", "claude": "extrahiert", "schätzung": "geschätzt"}
 
@@ -119,6 +119,7 @@ def config_hash(config: Config, profile: Profile) -> str:
         "profil": profile.model_dump(mode="json", exclude={"name", "active", "fredy", "fetch_filter"}),
         "finance": config.finance_for(profile).model_dump(mode="json"),
         "grunderwerbsteuer": config.settings.grunderwerbsteuer,
+        "steuern": config.settings.steuern.model_dump(mode="json"),
     }
     return hashlib.sha256(json.dumps(relevant, sort_keys=True).encode()).hexdigest()[:16]
 

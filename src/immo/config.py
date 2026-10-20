@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from ruamel.yaml import YAML
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -141,9 +141,16 @@ class FinanceAssumptions(_Strict):
 
 
 class SteuernSettings(_Strict):
+    """Vereinfachte Steuerrechnung (Cashflow nach Steuern, Jahr 1); Gebäudeanteil und AfA-Satz in der Simulation änderbar."""
+
     grenzsteuersatz: float = Field(0.42, ge=0, le=0.5)
-    gebaeudeanteil: float = Field(0.75, gt=0, le=1)
-    afa_satz: Literal["auto"] | float = "auto"
+    gebaeudeanteil: float = Field(0.80, gt=0, le=1)  # Anteil Gebäude an Kaufpreis + Nebenkosten (Rest Grund und Boden)
+    afa_satz: float = Field(0.02, ge=0, le=0.2)
+
+    @field_validator("afa_satz", mode="before")
+    @classmethod
+    def _afa_auto(cls, v):
+        return 0.02 if v == "auto" else v  # ältere settings.yaml: „auto“ = Standardsatz 2 %
 
 
 class Settings(_Strict):

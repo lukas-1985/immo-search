@@ -49,10 +49,17 @@
         <dt>Cashflow</dt><dd class="{{ 'gut' if (f.cashflow_monat or 0) >= 0 else 'schlecht' }}">{{ f.cashflow_monat|eur }} / Monat</dd>
         <dt>Bruttorendite · Faktor</dt><dd>{{ f.bruttorendite|pct(2) }} · {{ f.faktor|zahl(1) }}</dd>
         <dt>Nettoanfangsrendite</dt><dd>{{ f.nettoanfangsrendite|pct(2) }}</dd>
+        {% if f.cashflow_nach_steuern_monat is defined %}
+        <dt>AfA</dt><dd>{{ f.afa_jahr|eur }} / Jahr ({{ a.gebaeudeanteil|pct(0) }} Gebäudeanteil · {{ a.afa_satz|pct(1) }})</dd>
+        <dt>Steuer</dt><dd>{{ f.steuer_jahr|eur }} / Jahr (Ergebnis {{ f.einkuenfte_jahr|eur }} · {{ a.grenzsteuersatz|pct(0) }}; − = Ersparnis)</dd>
+        <dt>Cashflow nach Steuern</dt><dd class="{{ 'gut' if (f.cashflow_nach_steuern_monat or 0) >= 0 else 'schlecht' }}">{{ f.cashflow_nach_steuern_monat|eur }} / Monat</dd>
+        {% endif %}
       </dl>
     </div>
     <p class="klein">Empfehlung P* = ((Miete − Bewirtschaftung − 12·Ziel-Cashflow) / (Zins + Tilgung) + EK − Sanierung) / (1 + Nebenkostenquote);
-      bei EK = Nebenkosten: P* = (Miete − Bewirtschaftung − 12·Ziel) / (Zins + Tilgung) − Sanierung.</p>
+      bei EK = Nebenkosten: P* = (Miete − Bewirtschaftung − 12·Ziel) / (Zins + Tilgung) − Sanierung.
+      Steuern vereinfacht: Steuer = Grenzsteuersatz · (Miete − Bewirtschaftung − Zinsen − AfA), AfA = Gebäudeanteil · (Kaufpreis + Nebenkosten + Sanierung) · AfA-Satz;
+      Verluste voll verrechnet, Tilgung nicht absetzbar. Näherung, keine Steuerberatung.</p>
   </details>
   {% endif %}
 </div>

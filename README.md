@@ -11,6 +11,7 @@ Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN
 - Phasen 7 und 8 (immo-server): Weboberfläche, MCP, Job-Runner, Ranking-Simulation, Konfigurations-Editor. `uv run python scripts/serve.py`, Einrichtung in [docs/SERVER.md](docs/SERVER.md)
 - Phase 6 (Automatisierung): Aufgabenplanung für Läufe, Backup und Server-Autostart (`scripts/install_tasks.ps1`), tägliches Backup (`scripts/backup.py`), Health-Prüfung nach jedem Lauf (`scripts/health.py`). Einrichtung in [docs/SERVER.md](docs/SERVER.md), Abschnitt 7; Abnahme (eine Woche unbeaufsichtigt) steht aus.
 - Phase 8b (Objekt-Simulation): je Angebot Kauf, Miete, Finanzierung und Kosten ändern, Zielwert-Rückrechnung (Cashflow, Bruttorendite, Nettoanfangsrendite → Kaufpreis, Miete, Zins, Eigenkapital), Szenarien speichern und vergleichen. Button „Simulieren“ in der Detailansicht.
+- Phase 8c (Steuern, vereinfacht): Cashflow nach Steuern für Jahr 1 (AfA, Grenzsteuersatz) in Detailansicht und Simulation, KPI `cashflow_nach_steuern`. Score bleibt vor Steuern.
 - Offen: Phase 5 (Telegram/Digest), Phase 9 (optional)
 
 ## Einrichten

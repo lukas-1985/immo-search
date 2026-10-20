@@ -199,3 +199,21 @@ def test_oberflaeche_simulation(bestand):
     assert v.status_code == 200 and "Ausgangswert" in v.text and "800.000 €" in v.text
     tc.post(f"/angebot/{lid}/szenario/{sid}/loeschen", data={"csrf": csrf, "profil": "mfh-a"})
     assert conn.execute("SELECT COUNT(*) FROM scenario").fetchone()[0] == 0
+
+
+def test_steuern_in_der_simulation(bestand):
+    _, cfg, conn, ids = bestand
+    basis = osim.lade_basis(conn, cfg, ids["f1"])
+    a = basis.annahmen
+    assert (a.grenzsteuersatz, a.gebaeudeanteil, a.afa_satz) == (0.42, 0.80, 0.02)  # Standard aus SteuernSettings
+    daten = {"p_gebaeudeanteil": "70", "p_afa_satz": "2,5", "p_tilgung_einrechnen": "1" if a.tilgung_einrechnen else "",
+             "p_eigenkapital_art": "betrag"}
+    ae = osim.aus_formular(a, daten)
+    assert ae == {"gebaeudeanteil": pytest.approx(0.70), "afa_satz": pytest.approx(0.025)}
+    r = osim.rechne(basis, ae)
+    s0, s1 = r["basis"], r["simulation"]
+    assert s1["afa_jahr"] == pytest.approx(0.70 * s1["gesamtinvestition"] * 0.025)
+    assert s1["steuer_jahr"] < s0["steuer_jahr"]  # mehr AfA → weniger Steuer
+    assert s1["cashflow_monat"] == s0["cashflow_monat"] and s1["score"] == s0["score"]  # vor Steuern unverändert
+    kpi = json.loads(conn.execute("SELECT kpis_json FROM score WHERE listing_id = ?", (ids["f1"],)).fetchone()[0])["alle_kpis"]
+    assert kpi["cashflow_nach_steuern"]["wert"] == pytest.approx(s0["cashflow_nach_steuern_monat"])

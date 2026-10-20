@@ -102,3 +102,33 @@ def test_beim_empfohlenen_preis_ist_cashflow_exakt_das_ziel():
 
 def test_ohne_aenderungen_gleich_basis():
     assert simulate(A).as_dict() == simulate(A, **{}).as_dict()
+
+
+# --------------------------------------------------------------------------- Steuern (vereinfacht, PLAN.md 5.7)
+
+STEUER = dict(grenzsteuersatz=0.42, gebaeudeanteil=0.80, afa_satz=0.02)
+
+
+def test_steuer_verlust_wird_ersparnis():
+    # AfA = 0,8 · (1 000 000 + 90 700) · 0,02 = 17 451,20; Ergebnis = 50 000 − 10 000 − 33 846,60 − 17 451,20 = −11 297,80
+    e = simulate(A, **STEUER)
+    assert e.afa_jahr == approx(17_451.20)
+    assert e.einkuenfte_jahr == approx(-11_297.80)
+    assert e.steuer_jahr == approx(-4_745.08)  # Ersparnis
+    assert e.cashflow_jahr == approx(-11_660.60)
+    assert e.cashflow_nach_steuern_jahr == approx(-6_915.52)
+    assert e.cashflow_nach_steuern_monat == approx(-576.29)
+    # Score-relevante Werte und Kaufpreisempfehlung bleiben vor Steuern
+    assert e.kaufpreisempfehlung.preis == approx(815_673.58)
+
+
+def test_steuer_gewinn_und_tilgung_nicht_absetzbar():
+    # Miete 80 000: B = 16 000, Ergebnis = 80 000 − 16 000 − 33 846,60 − 17 451,20 = 12 702,20 → Steuer 5 334,92
+    e = simulate(A, miete_ist=80_000, **STEUER)
+    assert e.steuer_jahr == approx(5_334.92)
+    assert e.cashflow_nach_steuern_monat == approx((12_339.40 - 5_334.92) / 12)
+    assert simulate(A, miete_ist=80_000, **{**STEUER, "tilgung": 0.04}).steuer_jahr == approx(5_334.92)
+    # ohne Steuersatz: nach Steuern = vor Steuern; ohne Miete: keine Steuerrechnung
+    e0 = simulate(A, **{**STEUER, "grenzsteuersatz": 0.0})
+    assert e0.cashflow_nach_steuern_monat == pytest.approx(e0.cashflow_monat)
+    assert simulate(A, miete_ist=None, **STEUER).cashflow_nach_steuern_monat is None
