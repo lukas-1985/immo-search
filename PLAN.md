@@ -744,7 +744,7 @@ immo-search/
 
 > Die Phasen 7–8 bauen auf der DB aus den Phasen 2–4 auf. Mit einfachen Ansichten kann Phase 7 auch parallel zu 5–6 entstehen.
 
-### 13.1 Stand der Umsetzung (18.10.2026)
+### 13.1 Stand der Umsetzung (20.10.2026)
 
 | Phase | Stand | Nachweis / Anmerkung |
 |---|---|---|
@@ -753,13 +753,13 @@ immo-search/
 | 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Mit 48 echten Anzeigen: Ist-Miete bei 21 von 22 Anzeigen mit Mietangabe erkannt (95 %). |
 | 4 | fertig | 5 Beispiele gegen Handrechnung (`tests/test_finance.py`). Ziel-Cashflow beim empfohlenen Preis exakt, 500 Zufallsfälle. |
 | 5 | offen | Telegram, E-Mail-Digest, `send_digest_now`, Digest-Button. Danach hängt sich der Telegram-Alarm an die Health-Prüfung. |
-| 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → Claude → Bewertung → Health) mit `--permission-mode dontAsk` und `.claude/run-settings.json`. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. |
+| 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → Claude → Bewertung → Health) mit `--permission-mode dontAsk` und `.claude/run-settings.json`. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. Lauf von Hand am 19.10.2026: Exit 0, 3 neue Angebote ausgewertet. Aufgaben noch nicht eingerichtet (20.10.2026). |
 | 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
 | 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
 | 8b | fertig (19.10.2026, Umfang verkleinert) | `finance.loese()` (geschlossene Formeln), `objekt_simulation.py` (Basis wie `scoring.bewerte`, Formular, Szenarien), Seiten `/angebot/<id>/simulation` und `/angebot/<id>/vergleich`, Szenarien in der Detailansicht. Tests `tests/test_objekt_simulation.py`: 8 Handrechnungen, 1 500 Zufallsfälle (Zielwert exakt getroffen), ohne Änderung = gespeicherte Bewertung, Szenarien ändern keine Bewertung. Im Browser mit einer Kopie des echten Bestands geprüft (Angebot 24: Break-even-Zins 4,01 %, Kaufpreis für Cashflow 0 = Empfehlung). |
 | 9 | offen | optional |
 
-Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), danach die Doku zur Übergabe.
+Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Phase 1), `83c1df9` (Phasen 7+8), `e1969a9` (Phase 6), `d6549f0` (Phase 8b).
 
 ---
 
