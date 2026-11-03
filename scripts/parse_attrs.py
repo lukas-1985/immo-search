@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 
-from immo.claude_io import objektart_by_listing
+from immo.ki_io import objektart_by_listing
 from immo.cli import open_context, parser, print_json, run
 from immo.db import now_iso
 from immo.parse_attrs import run_parse_attrs

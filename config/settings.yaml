@@ -75,3 +75,11 @@ steuern:                 # vereinfacht: Cashflow nach Steuern (Jahr 1), keine St
   grenzsteuersatz: 0.42  # persönlicher Grenzsteuersatz (ohne Soli/Kirchensteuer)
   gebaeudeanteil: 0.80   # Anteil Gebäude an Kaufpreis + Nebenkosten (Rest Grund und Boden); in der Simulation änderbar
   afa_satz: 0.02         # lineare AfA; in der Simulation änderbar
+
+# KI-Extraktion ueber Codex CLI mit gespeicherter ChatGPT-Anmeldung.
+ki:
+  cli_pfad: null        # automatisch: PATH, lokale CLI-Installation oder Windows-App-Cache
+  modell: null          # Codex-Standard; konkreten Modellnamen zum Pinnen eintragen
+  zeitlimit_s: 1800     # gesamter Extraktionsschritt einschliesslich Wiederholungen
+  stapelgroesse: 20
+  max_stapel: 3

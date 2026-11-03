@@ -153,7 +153,17 @@ class SteuernSettings(_Strict):
         return 0.02 if v == "auto" else v  # ältere settings.yaml: „auto“ = Standardsatz 2 %
 
 
+class KiSettings(_Strict):
+    cli_pfad: str | None = None  # optionaler Programmpfad statt automatischer Suche
+    # None verwendet den Codex-Standard; ein Modellname pinnt das gewünschte Modell.
+    modell: str | None = None
+    zeitlimit_s: int = Field(1800, ge=1, le=3600)
+    stapelgroesse: int = Field(20, ge=1, le=20)
+    max_stapel: int = Field(3, ge=1, le=3)
+
+
 class Settings(_Strict):
+    ki: KiSettings = KiSettings()
     fredy: FredySettings = FredySettings()
     database: DatabaseSettings = DatabaseSettings()
     server: ServerSettings = ServerSettings()

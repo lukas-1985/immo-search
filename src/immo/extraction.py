@@ -1,9 +1,9 @@
 """Merkmale aus dem Freitext: Schema, Prüfungen und Speichern.
 
 Quellen und Rang (höhere Stufen werden nie von niedrigeren überschrieben):
-    portal > regel > claude > schätzung
+    portal > regel > openai / claude (historisch) > schätzung
 
-Prüfungen beim Speichern (deterministisch, für Regel- und Claude-Werte gleich):
+Prüfungen beim Speichern (deterministisch, für Regel- und KI-Werte gleich):
     1. JSON-Schema der Objektart
     2. Belegstelle steht wörtlich in Titel oder Beschreibung
     3. Plausibilität (z. B. Miete/Kaufpreis zwischen 1 % und 25 %)
@@ -24,8 +24,8 @@ from jsonschema import Draft202012Validator
 from .config import PROJECT_ROOT
 from .db import now_iso
 
-SCHEMA_DIR = PROJECT_ROOT / ".claude" / "skills" / "immo-analyse" / "extraction_schema"
-SOURCE_RANK = {"schätzung": 0, "claude": 1, "regel": 2, "portal": 3}
+SCHEMA_DIR = PROJECT_ROOT / "resources" / "extraction_schema"
+SOURCE_RANK = {"schätzung": 0, "claude": 1, "openai": 1, "regel": 2, "portal": 3}
 MAX_VERSUCHE = 3  # danach legt `pending` das Angebot nicht mehr vor (bis sich der Text ändert)
 
 
@@ -119,7 +119,10 @@ def store_fields(
     """
     report = FieldReport()
     rank = SOURCE_RANK[quelle]
-    conn.execute("DELETE FROM extraction WHERE listing_id = ? AND quelle = ?", (listing["id"], quelle))
+    if quelle in ("openai", "claude"):
+        conn.execute("DELETE FROM extraction WHERE listing_id = ? AND quelle IN ('openai', 'claude')", (listing["id"],))
+    else:
+        conn.execute("DELETE FROM extraction WHERE listing_id = ? AND quelle = ?", (listing["id"], quelle))
     existing = existing_sources(conn, listing["id"])
     ts = now_iso()
     for feld, item in felder.items():

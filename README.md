@@ -1,8 +1,16 @@
 # immo-search
 
-Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN.md](PLAN.md). Aktueller Stand und nächster Schritt: [CLAUDE.md](CLAUDE.md).
+Persönliche Meta-Suche für Kapitalanlage-Immobilien. Konzept und Phasen: [PLAN.md](PLAN.md). Aktueller Stand und nächster Schritt: [AGENTS.md](AGENTS.md).
 
 ## Stand
+
+- Formatkorrektur (03.11.2026): fehlerhafte KI-Feldwerte werden je Angebot einmal korrigiert; gültige Nachbarergebnisse bleiben gespeichert. Originalantwort von job-7 auf DB-Kopie erfolgreich nachgespielt; 181 Tests grün.
+
+- Korrektur Web-Lauf (03.11.2026): Programmsuche ohne Desktop-PATH ergänzt; echter Test ohne Codex im PATH erfolgreich. 178 Tests grün.
+
+Verifiziert am 03.11.2026: 172 Tests grün, vier echte KI-Testauswertungen ohne Ablehnung und Neuauswertung mit anschließender Bewertung über run.ps1 erfolgreich. Produktiv-DB v3 nach Sicherung migriert, alle 368 Extraktionswerte erhalten; Server auf Port 8710 gestartet. Aufgabenplanung und einwöchige Abnahme bleiben offen.
+
+- 03.11.2026: KI auf Codex mit ChatGPT-Anmeldung umgestellt. Python steuert Extraktion und Speicherung; DB v3 erhält historische Claude-Quellen.
 
 - Phase 2 (Kern & Sync): Konfiguration mit Prüfung, eigene DB, Fredy-Client (API / SQLite read-only), `sync` mit `fetch_filter` und Preisverlauf.
 - Phase 3 (Extraktion): Schema MFH, Regel-Parser `parse_attrs`, `pending`/`save` mit Schema-, Beleg- und Plausibilitätsprüfung, Skill `immo-analyse`.
@@ -33,13 +41,30 @@ Die Ausgabe zeigt je Profil: geholt, neu, aktualisiert, Preisänderungen, entfer
 
 ## Extraktion
 
+Einmalig im Windows-Konto für Server und Aufgabenplanung mit `codex login` anmelden. Normaler Einstieg:
+
 ```powershell
-uv run python scripts/parse_attrs.py                 # Regeln (Quelle „regel“)
-uv run python scripts/pending.py --limit 20          # Vorlage für Claude
-uv run python scripts/save.py data/extraction/x.json # Claude-Ergebnis prüfen + speichern
+powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1
+uv run python scripts/extract.py --profile mfh-kl   # nur KI-Extraktion
 ```
 
-Im Normalbetrieb ruft der Skill diese Schritte auf: `claude -p "/immo-analyse"`.
+Die folgenden Hilfsbefehle dienen zur Diagnose bzw. zum manuellen Import, nicht zur Steuerung des automatischen Codex-Laufs:
+
+```powershell
+uv run python scripts/parse_attrs.py                 # Regeln (Quelle „regel“)
+uv run python scripts/pending.py --limit 20          # Vorlage für die KI
+uv run python scripts/save.py data/extraction/x.json # KI-Ergebnis prüfen + speichern
+```
+
+Im Normalbetrieb: `powershell -File run.ps1`. Nur KI-Extraktion: `uv run python scripts/extract.py`.
+Einmalig `codex login` ausführen; `codex login status` prüft die ChatGPT-Anmeldung.
+`ki.cli_pfad` kann einen expliziten Programmpfad setzen; bei null werden PATH und die lokalen Windows-Installationsordner durchsucht. Details bei „Codex CLI fehlt“: [SERVER.md, Abschnitt 8.2](docs/SERVER.md#82-codex-wird-im-web-lauf-nicht-gefunden).
+`ki` in `config/settings.yaml` steuert Modell (null = Codex-Standard), gesamtes Zeitlimit und Stapelgröße.
+Codex liefert strukturierte Daten; Python prüft Schema, Belegstellen und Plausibilität vor der Speicherung.
+Erfolgreich ausgewertete Altangebote werden nicht allein wegen des Anbieterwechsels erneut vorgelegt.
+Schema und Extraktionsregeln stehen unter `resources/`. Der Skill `immo-analyse` nutzt dieselben Regeln.
+Logs: `data/logs/codex-*.log`, Ergebnisse: `data/extraction/codex-*.json`, Rohantworten: `codex-*.antwort.json`. Zuordenbare Formatfehler erhalten einen gezielten Korrekturversuch; Details in [SERVER.md](docs/SERVER.md), Abschnitt 8.3.
+Die effektive Modellwahl wird aus dem CLI-Protokoll übernommen und im Lauf sowie je Extraktion gespeichert; fehlt sie dort, wird der konfigurierte Name verwendet (bei null bleibt die Modellspalte leer).
 
 Ohne Fredy ausprobieren (eigene Dev-DB, nie die echte):
 
@@ -47,6 +72,7 @@ Ohne Fredy ausprobieren (eigene Dev-DB, nie die echte):
 uv run python scripts/dev_seed.py --db data/dev.db
 uv run python scripts/parse_attrs.py --db data/dev.db
 uv run python scripts/pending.py --db data/dev.db
+uv run python scripts/extract.py --db data/dev.db    # echte Codex-Auswertung, nutzt Kontingent
 ```
 
 ## Fredy (Phase 1)

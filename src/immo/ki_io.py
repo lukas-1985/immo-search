@@ -1,6 +1,6 @@
-"""Schnittstelle zu Claude: `pending` legt Angebote vor, `save` prüft und speichert die Antwort.
+"""Schnittstelle zu KI: `pending` legt Angebote vor, `save` prüft und speichert die Antwort.
 
-Claude wertet jedes Angebot nur einmal aus. Erneut vorgelegt wird es nur, wenn
+KI wertet jedes Angebot nur einmal aus. Erneut vorgelegt wird es nur, wenn
 - sich die Beschreibung geändert hat (Hash-Vergleich),
 - das Extraktionsschema eine neue Version hat,
 - der letzte Versuch abgelehnt wurde (höchstens MAX_VERSUCHE Mal) oder
@@ -55,7 +55,7 @@ def pending(
     listing_id: int | None = None,
     reextract: bool = False,
 ) -> dict[str, Any]:
-    """Kompakte Vorlage für Claude: nur relevante Felder, bekannte Merkmale und gesuchte Felder."""
+    """Kompakte Vorlage für KI: nur relevante Felder, bekannte Merkmale und gesuchte Felder."""
     if listing_id is not None:
         candidates = {k: v for k, v in objektart_by_listing(conn, config).items() if k == listing_id}
     else:
@@ -74,11 +74,11 @@ def pending(
         if len(items) >= limit:
             continue
         sources = existing_sources(conn, lid)
-        # Felder aus höherrangigen Quellen braucht Claude nicht erneut zu suchen
+        # Felder aus höherrangigen Quellen braucht KI nicht erneut zu suchen
         bekannt = {
             r["feld"]: json.loads(r["wert"])
             for r in conn.execute("SELECT feld, wert, quelle FROM extraction WHERE listing_id = ?", (lid,))
-            if SOURCE_RANK[r["quelle"]] > SOURCE_RANK["claude"]
+            if SOURCE_RANK[r["quelle"]] > SOURCE_RANK["openai"]
         }
         items.append({
             "listing_id": lid,
@@ -122,8 +122,20 @@ def _set_status(conn: sqlite3.Connection, listing_id: int, beschreibung_hash: st
     )
 
 
-def save(conn: sqlite3.Connection, config: Config, payload: Any) -> SaveReport:
-    """Claude-Ergebnisse prüfen und speichern. Ungültige Ergebnisse werden abgelehnt und später erneut vorgelegt."""
+def vermerke_transportfehler(conn: sqlite3.Connection, angebote: list[dict], fehler: dict[int, list[str]]) -> None:
+    """Fehler bekannter Vorlagen zählen, ohne bisherige Extraktionswerte anzutasten."""
+    for angebot in angebote:
+        lid = angebot["listing_id"]
+        if lid in fehler:
+            _set_status(conn, lid, angebot["beschreibung_hash"], angebot["schema_version"], False,
+                        "; ".join(fehler[lid])[:1000])
+    conn.commit()
+
+
+def save(conn: sqlite3.Connection, config: Config, payload: Any, quelle: str = "openai", modell: str | None = None) -> SaveReport:
+    """KI-Ergebnisse prüfen und speichern. Ungültige Ergebnisse werden abgelehnt und später erneut vorgelegt."""
+    if quelle not in ("openai", "claude"):
+        raise ValueError("Unzulässige KI-Quelle")
     report = SaveReport()
     results = payload.get("ergebnisse") if isinstance(payload, dict) else None
     if not isinstance(results, list):
@@ -146,7 +158,11 @@ def save(conn: sqlite3.Connection, config: Config, payload: Any) -> SaveReport:
             _set_status(conn, lid, listing["beschreibung_hash"], schema.version, False, "; ".join(errors)[:1000])
             continue
 
-        fields = store_fields(conn, listing, result["felder"], "claude", schema.version)
+        fields = store_fields(conn, listing, result["felder"], quelle, schema.version)
+        conn.execute(
+            "INSERT INTO extraction_run (listing_id, quelle, modell, beschreibung_hash, zeitpunkt) VALUES (?, ?, ?, ?, ?)",
+            (lid, quelle, modell, listing["beschreibung_hash"], now_iso()),
+        )
         report.angenommen[lid] = {
             "gespeichert": fields.gespeichert,
             "uebersprungen": fields.uebersprungen,

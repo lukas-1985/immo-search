@@ -5,7 +5,7 @@
 #
 # Aufgaben:
 #   "immo-search lauf"    taeglich ab schedule.run.from alle schedule.run.every_hours Stunden bis schedule.run.to
-#                         -> scripts\lauf.py -> run.ps1 (Sync, Regeln, Claude, Bewertung, Health)
+#                         -> scripts\lauf.py -> run.ps1 (Sync, Regeln, KI, Bewertung, Health)
 #   "immo-search backup"  taeglich um schedule.backup.at -> scripts\backup.py
 #   "immo-search server"  bei Anmeldung (1 min Verzoegerung) -> scripts\serve.py, Neustart nach Absturz
 #

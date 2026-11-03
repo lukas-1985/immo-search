@@ -529,7 +529,7 @@ def szenario_vergleich(request: Request, listing_id: int, profil: str | None = N
 
 
 def _nach_aenderung(request: Request, conn: sqlite3.Connection, z) -> str:
-    """Konfiguration neu laden und alle Profile neu bewerten (Sekunden, ohne Claude)."""
+    """Konfiguration neu laden und alle Profile neu bewerten (Sekunden, ohne KI)."""
     t = time.monotonic()
     cfg = z.neu_laden()
     stats = run_score(conn, cfg)

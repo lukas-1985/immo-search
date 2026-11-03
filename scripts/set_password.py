@@ -51,8 +51,8 @@ def main() -> int:
         token = secrets.token_urlsafe(32)
         text = setze(text, "MCP_TOKEN", token)
         print(f"MCP_TOKEN gesetzt: {token}")
-        print("Einbinden in Claude Code:")
-        print(f'  claude mcp add --transport http immo http://<host>:8710/mcp --header "Authorization: Bearer {token}"')
+        print("Einbinden in Codex (MCP_TOKEN vorher als Umgebungsvariable setzen):")
+        print('  codex mcp add immo --url http://<host>:8710/mcp --bearer-token-env-var MCP_TOKEN')
     ENV.write_text(text, encoding="utf-8")
     print(f"Gespeichert in {ENV}. Server neu starten.")
     return 0

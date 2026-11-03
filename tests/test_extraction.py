@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from immo.claude_io import objektart_by_listing, pending, save
+from immo.ki_io import objektart_by_listing, pending, save
 from immo.extraction import MAX_VERSUCHE, belegstelle_found, field_values, load_schema, plausibility_error
 from immo.parse_attrs import extract_rules, run_parse_attrs
 from immo.sync import run_sync
@@ -159,7 +159,7 @@ def test_save_accepts_valid_and_rejects_invalid(seeded):
     assert bad["listing_id"] in report.abgelehnt
 
     values = field_values(conn, ok["listing_id"])
-    assert values["jahresnettokaltmiete_ist"] == {"wert": 37800, "rechenweg": "3.150 € × 12", "quelle": "claude",
+    assert values["jahresnettokaltmiete_ist"] == {"wert": 37800, "rechenweg": "3.150 € × 12", "quelle": "openai",
                                                    "konfidenz": "mittel",
                                                    "belegstelle": "eine monatliche Nettokaltmiete von insgesamt 3.150 € erzielen"}
     assert values["wohneinheiten"]["quelle"] == "regel"

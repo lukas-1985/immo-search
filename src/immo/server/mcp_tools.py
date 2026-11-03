@@ -201,7 +201,7 @@ class Werkzeuge:
             "status_werte": erlaubte_status(self.config), "end_status": self.config.settings.workflow.end_status,
             "kpis": {k.name: {"formel": k.beschreibung, "einheit": k.einheit} for k in REGISTER.values()},
             "finanzannahmen": list(FINANZ_FELDER),
-            "qualitaet": "exakt (Portal) > extrahiert (Regel/Claude) > geschätzt (Annahme, z. B. Miete aus €/m²)",
+            "qualitaet": "exakt (Portal) > extrahiert (Regel/KI) > geschätzt (Annahme, z. B. Miete aus €/m²)",
             "preisabstand": "(Angebotspreis − Kaufpreisempfehlung) / Angebotspreis; negativ = Angebot liegt unter der Empfehlung",
             "kaufpreisempfehlung": "Kaufpreis, bei dem der Cashflow genau dem Ziel-Cashflow des Profils entspricht",
         }
@@ -267,8 +267,8 @@ BESCHREIBUNGEN = {
     "get_jobs": "Status laufender und letzter Läufe.",
     "set_status": "Bearbeitungsstatus eines Angebots setzen (gilt für alle Portale desselben Objekts), optional mit Notiz.",
     "add_note": "Notiz zu einem Angebot hinzufügen.",
-    "start_run": "Kompletten Lauf anstoßen (Sync, Regeln, Claude-Extraktion, Bewertung), optional nur ein Profil.",
-    "reextract_listing": "Ein Angebot von Claude neu auswerten lassen (danach neu bewerten).",
+    "start_run": "Kompletten Lauf anstoßen (Sync, Regeln, KI-Extraktion, Bewertung), optional nur ein Profil.",
+    "reextract_listing": "Ein Angebot von KI neu auswerten lassen (danach neu bewerten).",
 }
 
 

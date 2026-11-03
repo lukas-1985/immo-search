@@ -6,7 +6,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA_V1 = """
 CREATE TABLE listing (
@@ -167,7 +167,32 @@ CREATE TABLE extraction_status (
 );
 """
 
-MIGRATIONS = {1: SCHEMA_V1, 2: SCHEMA_V2}
+SCHEMA_V3 = """
+CREATE TABLE extraction_neu (
+    listing_id INTEGER NOT NULL REFERENCES listing (id) ON DELETE CASCADE,
+    feld TEXT NOT NULL,
+    wert TEXT,
+    quelle TEXT NOT NULL CHECK (quelle IN ('portal', 'regel', 'claude', 'openai', 'schätzung')),
+    konfidenz TEXT CHECK (konfidenz IN ('hoch', 'mittel', 'niedrig')),
+    belegstelle TEXT,
+    schema_version INTEGER,
+    extracted_at TEXT NOT NULL,
+    PRIMARY KEY (listing_id, feld)
+);
+INSERT INTO extraction_neu SELECT * FROM extraction;
+DROP TABLE extraction;
+ALTER TABLE extraction_neu RENAME TO extraction;
+CREATE TABLE extraction_run (
+    id INTEGER PRIMARY KEY,
+    listing_id INTEGER NOT NULL REFERENCES listing (id) ON DELETE CASCADE,
+    quelle TEXT NOT NULL,
+    modell TEXT,
+    beschreibung_hash TEXT,
+    zeitpunkt TEXT NOT NULL
+);
+"""
+
+MIGRATIONS = {1: SCHEMA_V1, 2: SCHEMA_V2, 3: SCHEMA_V3}
 
 
 def now_iso() -> str:

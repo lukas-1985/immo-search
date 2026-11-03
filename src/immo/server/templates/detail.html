@@ -143,7 +143,7 @@
       </table>
       <form method="post" action="/angebot/{{ l.id }}/neu-auswerten" class="zeile" style="margin-top:8px">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button class="zweit" {% if offener_job %}disabled{% endif %}>Neu auswerten (Claude)</button>
+        <button class="zweit" {% if offener_job %}disabled{% endif %}>Neu auswerten (KI)</button>
         {% if offener_job %}<span class="klein">Job {{ offener_job.id }}: {{ offener_job.status }}</span>{% endif %}
         {% if d.extraktion %}<span class="klein">zuletzt {{ d.extraktion.updated_at|datum(true) }} ({{ d.extraktion.status }})</span>{% endif %}
       </form>

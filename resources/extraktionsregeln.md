@@ -1,40 +1,3 @@
----
-name: immo-analyse
-description: Lauf der Immo-Suche – Angebote von Fredy holen, Merkmale aus Anzeigentexten extrahieren, bewerten und melden. Aufruf `/immo-analyse [profil] [--mode=run|digest] [--listing=<id> --reextract]`.
----
-
-# immo-analyse
-
-Du führst einen Lauf der persönlichen Immobiliensuche aus. Die deterministische Arbeit erledigen die Python-Skripte unter `scripts/`. Deine Aufgabe ist nur, was Urteilsvermögen braucht: **Merkmale aus Freitext extrahieren** (und ab Phase 5 den Digest schreiben).
-
-Alle Befehle laufen im Projektordner mit `uv run python scripts/<name>.py`. Schreibe Dateien **nur** unter `data/`.
-
-## Argumente
-
-| Argument | Bedeutung |
-|---|---|
-| `profil` (optional) | nur dieses Suchprofil (`config/profiles/<profil>.yaml`), sonst alle aktiven; an jedes Skript als `--profile <profil>` weitergeben |
-| `--mode=run` (Standard) | Daten holen, extrahieren, bewerten, Sofortmeldungen |
-| `--mode=digest` | wie `run`, danach Digest (ab Phase 5) |
-| `--nur-extraktion` | nur Schritte 3–5 und 8: Sync, Regeln und Bewertung erledigt `run.ps1` selbst (unbeaufsichtigter Lauf). Keine anderen Skripte aufrufen. |
-| `--listing=<id> --reextract` | nur dieses Angebot neu auswerten: direkt mit Schritt 3 beginnen und `pending.py --listing <id> --reextract` aufrufen; Schritte 1–2 entfallen |
-
-## Ablauf
-
-1. **Sync:** `uv run python scripts/sync.py` – Exit-Code 1: Lauf abbrechen und den Fehler melden. Exit-Code 2 (Teilfehler): weitermachen, Fehler am Ende nennen.
-2. **Regeln:** `uv run python scripts/parse_attrs.py`
-3. **Vorlage holen:** `uv run python scripts/pending.py` – liefert JSON mit `angebote` (höchstens 20) und `offen_gesamt`.
-   Ist `anzahl` 0, weiter mit Schritt 6.
-4. **Extrahieren:** Für jedes Angebot ein Ergebnis nach dem Schema `extraction_schema/<objektart>.json` (Objektart steht in der Vorlage) und den Regeln unten. Alle Ergebnisse in **eine** Datei schreiben:
-   `data/extraction/<JJJJMMTT-HHMM>.json` mit dem Inhalt `{"ergebnisse": [ … ]}`.
-5. **Speichern:** `uv run python scripts/save.py data/extraction/<datei>.json`
-   - Exit-Code 2: Die Ausgabe nennt unter `abgelehnt` die Gründe. Korrigiere **nur** diese Ergebnisse, schreibe sie in eine neue Datei und speichere sie **einmal** erneut. Was dann noch scheitert, wird beim nächsten Lauf wieder vorgelegt.
-   - `feld_abgelehnt` bei angenommenen Ergebnissen: einzelne Felder wurden verworfen (z. B. Belegstelle nicht gefunden). Nicht erneut senden, nur im Abschluss erwähnen.
-   - Ist `offen_gesamt` größer als die Anzahl der Angebote, Schritte 3–5 wiederholen, höchstens dreimal je Lauf.
-6. **Bewerten:** `uv run python scripts/score.py` – bewertet alle Angebote neu und zeigt die Spitzenreiter mit Kaufpreisempfehlung.
-7. **Melden** (`scripts/notify.py`): erst ab Phase 5 vorhanden. Fehlt das Skript, diesen Schritt überspringen.
-8. **Abschluss:** kurze Zusammenfassung in 3–6 Zeilen: geholt / neu / ausgewertet / abgelehnt / bewertet / Fehler, dazu die Top 3 mit Score, Preis und Kaufpreisempfehlung.
-
 ## Regeln für die Extraktion
 
 **Grundsatz: Nur extrahieren, was im Text steht. Nichts raten, nichts aus Erfahrung ergänzen.** Ein Feld, das der Text nicht belegt, wird weggelassen. Ein fehlendes Feld ist kein Fehler, ein falsches schon.
@@ -87,9 +50,3 @@ Ergebnis:
   }}
 ]}
 ```
-
-## Was du nicht tust
-
-- Keine Konfiguration ändern, keine Dateien außerhalb von `data/` schreiben, die DB nicht direkt bearbeiten.
-- Keine Anbieter kontaktieren, keine Webseiten aufrufen.
-- Bei erreichtem Nutzungskontingent oder Zeitnot: nach dem letzten erfolgreichen `save` aufhören. Nicht Gespeichertes wird beim nächsten Lauf wieder vorgelegt.

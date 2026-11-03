@@ -1,7 +1,7 @@
 # Immo-Suche – Konzept & Umsetzungsplan
 
 > Persönliche Meta-Suche für Kapitalanlage-Immobilien (Start: Mehrfamilienhäuser).
-> Stand: 20.10.2026 · Status: Phasen 2–4, 7, 8, 8b und 8c (Steuern) umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 offen, 9 optional.
+> Stand: 03.11.2026 · Status: Phasen 2–4, 7, 8, 8b und 8c (Steuern) umgesetzt (ohne Digest-Teile), Phase 6 umgesetzt (Abnahme: eine Woche unbeaufsichtigt steht aus), Phase 1 fast fertig (Fredy läuft auf dem Mini-PC), 5 offen, 9 optional.
 
 ---
 
@@ -10,8 +10,8 @@
 - **Fredy** (Open-Source-Tool, Docker) übernimmt das Einsammeln der Angebote von ImmoScout24, Immowelt (inkl. Immonet), Kleinanzeigen und weiteren Portalen.
 - Eine eigene **Analyse-Schicht** liegt darüber und besteht aus zwei Teilen:
   - **Python** erledigt alles Deterministische: Daten holen, filtern, speichern, Score und Finanzkennzahlen berechnen.
-  - **Claude** erledigt alles, was Urteilsvermögen braucht: Freitexte auswerten, Auffälligkeiten erkennen, den Digest mit Begründungen schreiben.
-- Beides ist in einem **Claude-Skill `immo-analyse`** gebündelt. Ein zeitgesteuerter Claude-Code-Task (ohne Oberfläche) führt ihn auf dem Heimserver aus.
+  - **Codex mit ChatGPT-Anmeldung** erledigt alles, was Urteilsvermögen braucht: Freitexte auswerten, Auffälligkeiten erkennen, den Digest mit Begründungen schreiben.
+- Der **Codex-Skill `immo-analyse`** verweist auf die Python-Pipeline. Zeitplan und Job-Runner starten `run.ps1`; Python steuert die KI-Aufrufe ohne interaktive Skill-Ausführung.
 - **Alles ist zentral konfigurierbar**, über ein oder mehrere *Suchprofile* (YAML):
   - Objektart, Region, Fläche, Preis usw.
   - Ausschlusskriterien
@@ -22,7 +22,7 @@
 - **Ausgabe:** Sofortmeldung über Telegram bei Top-Treffern und ein täglicher Digest per E-Mail.
 - **Eigener kleiner Server `immo-server`** auf Basis der **eigenen SQLite-DB**. Er stellt zwei Dinge bereit:
   - eine **Web-Oberfläche**: Übersicht, Liste, Detailansicht, Status-Verfolgung, Läufe anstoßen, Konfigurations-Editor, Kaufpreisempfehlung, Objekt- und Ranking-Simulation
-  - einen **MCP-Server**: Claude kann suchen, vergleichen und erklären, außerdem Status und Notizen setzen und Läufe anstoßen.
+  - einen **MCP-Server**: Codex kann suchen, vergleichen und erklären, außerdem Status und Notizen setzen und Läufe anstoßen.
 - **Erreichbarkeit:** im Heimnetz und unterwegs über VPN (Tailscale). Nichts ist offen im Internet.
 
 ---
@@ -39,7 +39,7 @@
 - Für jedes Angebot eine **Kaufpreisempfehlung** auf Basis des Cashflows: Bis zu welchem Preis trägt sich das Objekt selbst?
 - Jedes Angebot in einer **Was-wäre-wenn-Simulation** mit allen sinnvollen Parametern durchspielen, als Vorbereitung für Besichtigung, Bankgespräch und Preisverhandlung
 - Den eigenen Ablauf vom ersten Sichten bis zum Kauf in einer Oberfläche verfolgen
-- Den Datenbestand im Gespräch mit Claude auswerten
+- Den Datenbestand im Gespräch mit Codex auswerten
 
 **Nicht-Ziele**
 - Kein eigenes Scraping, das ist Aufgabe von Fredy
@@ -56,12 +56,12 @@
 |---|---|
 | Datenquelle | Fredy (Docker), Version ≥ 28 |
 | Portale | ImmoScout24, Immowelt (deckt Immonet ab), Kleinanzeigen, optional OhneMakler, Sparkasse, Immobilien.de u. a. |
-| Analyse | Kombination: Claude-Task ruft einen Skill auf, der die Python-Skripte nutzt |
+| Analyse | Python steuert die Pipeline und ruft Codex für strukturierte Extraktionsantworten auf; der Skill verweist auf dieselben Skripte |
 | Datenzugriff | Das Python-Skript holt die Daten **selbst** bei Fredy (HTTP-API, ersatzweise SQLite nur lesend). |
 | Oberfläche & MCP | Eigener Server `immo-server` (Python/FastAPI) auf der **eigenen** DB. Fredys Oberfläche und MCP dienen nur noch der Fehlersuche bei Rohdaten. |
 | Zugriff | Heimnetz + unterwegs per VPN (Tailscale), **ein** Benutzer mit Login |
 | Konfiguration | Die YAML-Dateien bleiben maßgeblich. Die Oberfläche schreibt geprüft und mit Backup in sie zurück. |
-| MCP-Schreibrechte | Status & Notizen setzen, Läufe anstoßen. Konfiguration und Extraktion kann Claude **nicht** ändern. |
+| MCP-Schreibrechte | Status & Notizen setzen, Läufe anstoßen. Konfiguration und Extraktion kann Codex **nicht** ändern. |
 | Zweck | Kapitalanlage |
 | Objektart (Start) | Mehrfamilienhaus, zentral im Suchprofil konfigurierbar |
 | Score | Konfigurierbare Formel aus Kennzahlen (KPIs), Standard: Bruttorendite |
@@ -69,87 +69,77 @@
 | Simulation | Eine gemeinsame Rechenfunktion `finance.simulate()` für Score, Kaufpreisempfehlung, Oberfläche und MCP. Szenarien je Objekt speicherbar. |
 | Region / Budget | Platzhalter im Beispielprofil, legst du selbst fest |
 | Benachrichtigung | Telegram (Sofortmeldung) + E-Mail (täglicher Digest), jeweils mit Link zur Detailansicht |
-| Betrieb | Mini-PC mit Windows 11, rund um die Uhr. **Nur Fredy läuft in Docker.** Alles Eigene läuft lokal unter Windows: Python-Skripte, `immo-server`, Claude Code, `immo.db`. Siehe Abschnitt 11.1. |
+| Betrieb | Mini-PC mit Windows 11, rund um die Uhr. **Nur Fredy läuft in Docker.** Alles Eigene läuft lokal unter Windows: Python-Skripte, `immo-server`, Codex CLI, `immo.db`. Siehe Abschnitt 11.1. |
 
 ---
 
 ## 3. Architektur
 
-```
-┌──────────────────────────────── Mini-PC (Windows 11, 24/7) ─────────────────────────────────┐
-│                                                                                             │
-│  ┌──────── Docker Desktop ────────┐                                                         │
-│  │  Fredy                          │                                                        │
-│  │  ├─ Jobs je Profil & Portal     │                                                        │
-│  │  ├─ Adapter: IS24, Immowelt, KA │                                                        │
-│  │  └─ SQLite (/db Volume)         │                                                        │
-│  └───────────────┬─────────────────┘                                                        │
-│                  │ HTTP-API (bzw. SQLite read-only)                                         │
-│  ┌───────────────▼───────────── Kern-Paket „immo“ (Python) ──────────────────────────────┐  │
-│  │  config · db · filters · kpis · scoring · finance · fredy_client · notify · jobs       │  │
-│  └──────▲───────────────────────────▲─────────────────────────────────▲──────────────────┘  │
-│         │                           │                                 │                     │
-│  ┌──────┴──────── CLI-Skripte ──┐ ┌─┴──────── immo-server (FastAPI) ─┴────────────────┐    │
-│  │ sync · parse_attrs · pending  │ │  Web-UI (Jinja2 + HTMX)   /                        │    │
-│  │ save · score · notify         │ │  REST-API                 /api/...                 │    │
-│  └──────▲────────────────────────┘ │  MCP (Streamable HTTP)    /mcp                     │    │
-│         │                          │  Job-Runner ─► startet claude -p bzw. CLI-Skripte  │    │
-│  Skill „immo-analyse“              └──────────────▲──────────────────────▲─────────────┘    │
-│         ▲                                         │                      │                  │
-│  Windows-Aufgabenplanung ─► claude -p             │ Browser              │ MCP              │
-│                                     data/immo.db (SQLite, WAL) ◄─ alle Bausteine            │
-└───────────────────────────────────────────────────┼──────────────────────┼──────────────────┘
-                                         LAN / Tailscale-VPN       Claude Desktop / Code (LAN/VPN)
+```text
+Fredy (Docker, API oder SQLite read-only)
+  -> sync -> parse_attrs -> extract.py -> score -> health
+                              |
+                   Python: pending -> codex exec -> save
+                   (strukturierte Antwort, geprüfte Speicherung)
+
+Windows-Aufgabenplanung -> scripts/lauf.py -> run.ps1 -> Pipeline
+Weboberfläche / MCP -> Job-Runner ----------> run.ps1 -> Pipeline
+Codex-Skill immo-analyse ------------------> run.ps1 / extract.py
+
+Alle Python-Bausteine nutzen die eigene data/immo.db (SQLite, WAL).
+immo-server (FastAPI, Oberfläche + MCP) liest und schreibt diese DB.
+Codex erhält nur Vorlagen und Fachregeln; es beschreibt die DB nicht selbst.
 ```
 
-**Kernprinzip:** Eine einzige Logik in `immo/`. CLI-Skripte, Web-Oberfläche und MCP-Server nutzen **dieselben** Funktionen für Filter, KPIs und Score. Deshalb zeigen Oberfläche, MCP und Digest garantiert dieselben Zahlen.
+**Kernprinzip:** Eine einzige Logik in `immo/`. CLI-Skripte, Web-Oberfläche und MCP-Server nutzen **dieselben** Funktionen für Filter, KPIs und Score. Oberfläche und MCP verwenden dieselben Berechnungen; der künftige Digest soll ebenfalls darauf aufbauen.
 
 **Wer macht was?**
 
 | Baustein | Aufgabe | Deterministisch? |
 |---|---|---|
-| Fredy | Portale abfragen, Duplikate über Portale erkennen, Exposé-Details (IS24) nachladen | – |
+| Fredy | Portale abfragen und Exposé-Details nachladen; portalübergreifende Duplikate erkennt die eigene `duplicates.py` | – |
 | `sync` | Neue und geänderte Angebote holen, Vorfilter anwenden, in eigener DB speichern, Preisverlauf führen | ja |
 | `parse_attrs` | Strukturierte Merkmale per Regeln aus der Attributliste bzw. dem Text ziehen (z. B. „Mieteinnahmen pro Jahr“) | ja |
-| Claude (Skill) | Lücken aus dem Freitext füllen (festes Schema), Risiken erkennen, Digest formulieren | nein, Ergebnis wird **einmalig gespeichert** |
-| `save` | Claude-Extraktion gegen das JSON-Schema prüfen und speichern | ja |
+| Codex über Python | Lücken aus dem Freitext füllen und belegte Risiken erkennen; Digest erst in Phase 5 | nein, erfolgreiches Ergebnis wird gespeichert |
+| `save` | Codex-Extraktion gegen das JSON-Schema prüfen und speichern | ja |
 | `score` | Ausschlusskriterien, KPIs, Score, Finanzierung, Ranking | ja |
-| `notify` | Telegram und E-Mail versenden | ja |
+| `notify` (geplant) | Telegram und E-Mail versenden (Phase 5) | ja |
 | `immo-server` | Oberfläche, REST-API, MCP, Job-Runner, Konfigurations-Editor | ja |
 
 ---
 
 ## 4. Ablauf eines Laufs
 
-```
-/immo-analyse [profil] [--mode=run|digest] [--listing=<id> --reextract]
+```text
+run.ps1 [-Profil <profil>] [-Db <pfad>] [-ConfigDir <pfad>]
 
-1. sync         Angebote der Profil-Jobs von Fredy holen
-                → fetch_filter anwenden (Ort, Fläche, Preis, …)
-                → neue Angebote anlegen, Änderungen (Preis, Status) als Historie
-2. parse_attrs  Regelbasierte Extraktion (Attributlisten, eindeutige Muster)
-3. pending      Unbewertete Angebote kompakt ausgeben (nur relevante Felder + Text)
-4. Claude       Merkmale nach extraction_schema extrahieren, Risiken markieren
-5. save         Validieren & speichern (Quelle je Feld: portal | regel | claude | schätzung)
-6. score        Hard-Filter → KPIs → Score → Ranking (alle Profile, auch Bestand neu)
-7a. mode=run    notify: Telegram für neue Treffer ≥ Schwellwert
-7b. mode=digest Claude schreibt Digest (Top-N, Pro/Contra, Preisänderungen,
-                Warnungen, Status-Übersicht) → notify versendet E-Mail
+1. sync         Angebote holen, fetch_filter anwenden, Änderungen speichern
+2. parse_attrs  Eindeutige Merkmale regelbasiert extrahieren
+3. extract.py   Python wählt offene Angebote und steuert Codex-Aufrufe
+   pending      Kompakte Vorlage: gesuchte/bekannte Felder, Titel und Text
+   Codex        Strukturierte Antwort nach Transport- und Fachschema
+   save         Prüfen und speichern (neue KI-Quelle openai)
+4. score        Hard-Filter -> KPIs -> Score -> Ranking
+5. health       Zustand prüfen und protokollieren
+
+-Listing <id> -Reextract: direkt KI-Neuauswertung, danach Bewertung;
+                         kein Sync, Regel-Lauf oder Health-Schritt.
+Phase 5 geplant: Telegram und E-Mail-Digest (derzeit nicht ausgeführt).
 ```
 
-**Auslöser:**
+**Auslöser:** Aktuell werden nur Lauf und Neuauswertung ausgeführt. Benachrichtigungen, Digest-Zeitplan, Digest-Button und `send_digest_now` sind geplant (Phase 5).
 
 | Auslöser | Modus |
 |---|---|
-| Windows-Aufgabenplanung | `run` alle 3 Stunden zwischen 7 und 22 Uhr, `digest` täglich um 7:30 Uhr (beides in `settings.yaml` → `schedule` einstellbar) |
-| Oberfläche („Jetzt ausführen“, „Neu auswerten“, „Digest senden“) | über den Job-Runner des Servers |
-| MCP (`start_run`, `reextract_listing`, `send_digest_now`) | über denselben Job-Runner |
+| Windows-Aufgabenplanung | Läufe nach `schedule.run` (Standard alle 3 Stunden, 07–22 Uhr); `schedule.digest` ist für Phase 5 reserviert |
+| Oberfläche („Kompletten Lauf starten“, „Neu auswerten (KI)“) | über den Job-Runner; Digest-Button erst in Phase 5 |
+| MCP (`start_run`, `reextract_listing`) | über denselben Job-Runner; `send_digest_now` erst in Phase 5 |
 
-**Sperre gegen parallele Läufe:** Zeitplan, Oberfläche und MCP teilen sich eine Sperre (Lock-Datei + Tabelle `job`). Es läuft immer nur **ein** Lauf, weitere werden eingereiht.
+**Sperre gegen parallele Läufe:** Zeitplan, Oberfläche und MCP teilen sich eine Sperre (Lock-Datei + Tabelle `job`). Der Server-Runner arbeitet Jobs nacheinander ab. Die zusätzliche Sperrdatei verhindert parallele Pipeline-Läufe; ein direkter konkurrierender run.ps1-Aufruf endet mit Exit 3.
 
-**Wichtig:** Claude wertet jedes Angebot nur **einmal** aus.
-- Ändert sich die Gewichtung oder Formel, rechnet `score` alle Angebote neu (Sekunden, ohne Claude). Das passiert auch automatisch nach dem Speichern der Konfiguration in der Oberfläche.
-- Eine erneute Auswertung durch Claude gibt es nur, wenn sich die Beschreibung ändert (Hash-Vergleich) oder du sie ausdrücklich anforderst (Oberfläche, MCP oder `--reextract`).
+**Wichtig:** Erfolgreich ausgewertete Angebote werden bei unverändertem Text und Schema nicht erneut vorgelegt.
+- Ändert sich die Gewichtung oder Formel, rechnet `score` alle Angebote neu (Sekunden, ohne Codex). Das passiert auch automatisch nach dem Speichern der Konfiguration in der Oberfläche.
+- Erneut vorgelegt werden Angebote bei geändertem Beschreibungstext (Hash), neuer Fachschema-Version, einem wiederholbaren Fehler oder ausdrücklicher Neuauswertung (Oberfläche, MCP oder `--listing … --reextract`). Der Anbieterwechsel allein löst keine Neuauswertung aus.
 
 ---
 
@@ -169,7 +159,7 @@ config/
 
 **Warum Profile statt Skill-Parametern?**
 - Die Objektart allein reicht nicht. Zu ihr gehören immer passende Filter, KPIs und Finanzannahmen. Für ein MFH sind z. B. die Einheiten wichtig, für eine ETW das Hausgeld.
-- Ein Profil bündelt all das an **einer** Stelle, liegt versioniert in Git und lässt sich auch ohne Claude nutzen.
+- Ein Profil bündelt all das an **einer** Stelle, liegt versioniert in Git und lässt sich auch ohne Codex nutzen.
 - Der **Skill-Parameter wählt nur das Profil aus:** `/immo-analyse mfh-beispiel`. Ohne Parameter laufen alle aktiven Profile.
 
 **Prüfung:** Ein Pydantic-Modell beschreibt die zulässige Struktur. CLI, Server und Konfigurations-Editor prüfen dagegen. Eine fehlerhafte Konfiguration wird nie gespeichert oder verwendet.
@@ -179,7 +169,7 @@ config/
 | Stufe | Wo | Worauf | Zweck |
 |---|---|---|---|
 | 1. Portalsuche | Fredy-Job (Such-URL des Portals) | was das Portal filtern kann | Grobe Vorauswahl, wenig Last |
-| 2. **`fetch_filter`** | `sync`, **vor** dem Speichern | Felder, die Fredy liefert: Ort/PLZ/Umkreis, Preis, Fläche, Zimmer, Baujahr, Portal | Genauer eingrenzen, als es die Portale können. Spart Claude-Aufwand. |
+| 2. **`fetch_filter`** | `sync`, **vor** dem Speichern | Felder, die Fredy liefert: Ort/PLZ/Umkreis, Preis, Fläche, Zimmer, Baujahr, Portal | Genauer eingrenzen, als es die Portale können. Spart Codex-Aufwand. |
 | 3. `hard_filter` | `score`, nach der Extraktion | alle Felder, auch die aus dem Freitext (Erbpacht, Einheiten, Ist-Miete, …) | Ausschlusskriterien |
 
 Angebote, die an Stufe 2 scheitern, werden **gar nicht** gespeichert. Für die Diagnose zählt das Skript sie nur mit. Angebote, die an Stufe 3 scheitern, bleiben mit Ausschlussgrund in der DB. Sie erscheinen nicht im Ranking, sind in der Oberfläche aber über den Filter „Ausgeschlossene anzeigen“ sichtbar.
@@ -383,8 +373,9 @@ Getrennt von Fredys DB. Fredy wird nie beschrieben. Die DB läuft im **WAL-Modus
 | `listing` | `id`, `fredy_id`, `provider`, `url`, `titel`, `adresse`, `plz`, `ort`, `lat/lon`, `preis`, `flaeche`, `zimmer`, `baujahr`, `energieklasse`, `beschreibung`, `beschreibung_hash`, `bilder`, `first_seen`, `last_seen`, `status_portal` (aktiv/entfernt), `duplicate_group` |
 | `listing_profile` | Zuordnung Angebot ↔ Profil (ein Angebot kann zu mehreren Profilen passen) |
 | `price_history` | `listing_id`, `datum`, `preis` |
-| `extraction` | `listing_id`, `feld`, `wert`, `quelle` (portal/regel/claude/schätzung), `konfidenz`, `belegstelle` (Textausschnitt), `schema_version`, `extracted_at` |
-| `extraction_status` | Stand der Claude-Auswertung je Angebot: `beschreibung_hash`, `schema_version`, `status` (ok/fehler), `versuche`, `letzter_fehler`. Grundlage für „nur einmal auswerten“. |
+| `extraction` | `listing_id`, `feld`, `wert`, `quelle` (portal/regel/openai/claude (historisch)/schätzung), `konfidenz`, `belegstelle` (Textausschnitt), `schema_version`, `extracted_at` |
+| `extraction_run` | Herkunft neuer Speicherungen: `listing_id`, `quelle`, effektives `modell` (falls ermittelbar), `beschreibung_hash`, `zeitpunkt`; historische Extraktionen werden nicht nachträglich zu OpenAI umetikettiert. |
+| `extraction_status` | Stand der Codex-Auswertung je Angebot: `beschreibung_hash`, `schema_version`, `status` (ok/fehler), `versuche`, `letzter_fehler`. Grundlage für „nur einmal auswerten“. |
 | `score` | `listing_id`, `profile_id`, `score`, `kpis_json` (inkl. Kaufpreisempfehlung, Rechenweg, Zinsspanne), `kaufpreisempfehlung`, `preisabstand` (eigene Spalten für Sortierung und Filter), `hard_filter_result`, `ausschlussgrund`, `config_hash`, `scored_at` |
 | `scenario` | Gespeicherte Simulations-Szenarien: `id`, `listing_id`, `profile_id`, `name`, `annahmen_json` (nur die geänderten Parameter), `ergebnis_json` (Stand beim Speichern), `created_at`, `updated_at` |
 | `workflow` | Dein Bearbeitungsstand je Angebot (Duplikatgruppe): `status`, `updated_at`, `updated_by` (ui/mcp) |
@@ -410,7 +401,7 @@ neu → gesichtet → interessant → angefragt → besichtigt → angebot_abgeg
 
 ## 7. Extraktion aus dem Freitext
 
-**Schema:** `extraction_schema.json`, je Objektart. Für Mehrfamilienhäuser:
+**Schema:** `resources/extraction_schema/<objektart>.json`, für MFH `mehrfamilienhaus.json` (Fachschema v1; Datenbankschema v3). Für Mehrfamilienhäuser:
 
 | Feld | Typ | Beispiel |
 |---|---|---|
@@ -418,8 +409,8 @@ neu → gesichtet → interessant → angefragt → besichtigt → angebot_abgeg
 | `jahresnettokaltmiete_ist` | € | 48.000 |
 | `jahresnettokaltmiete_soll` | € | 54.000 |
 | `leerstand_einheiten` | int | 1 |
-| `provision` | % / „provisionsfrei“ | 3,57 % |
-| `grundstueck_m2` | int | 820 |
+| `provision` | Anteil inkl. MwSt. | 0.0357 (3,57 %), 0 bei provisionsfrei |
+| `grundstueck_m2` | Zahl > 0 | 820 |
 | `erbpacht`, `denkmalschutz`, `aufgeteilt_weg` | bool | false |
 | `bauprojekt` | bool (true = Fertighaus-/Ausbauhaus-Angebot, kein Bestand) | false |
 | `heizungsart`, `heizung_baujahr` | text, int | Gas, 2012 |
@@ -428,7 +419,7 @@ neu → gesichtet → interessant → angefragt → besichtigt → angebot_abgeg
 | `risiken` | Liste | „Mietrückstände erwähnt“, „Feuchtigkeit Keller“ |
 | `verhandlungsbasis` | bool | true |
 
-**Regeln für Claude (in SKILL.md):**
+**Regeln für Codex (in `resources/extraktionsregeln.md`, vom Skill referenziert):**
 - Nur extrahieren, was im Text steht. Zu jedem Wert gehört die Belegstelle, nichts wird geraten.
 - Zahlen werden normalisiert: Monatsmieten werden auf das Jahr hochgerechnet, und der Rechenweg wird festgehalten.
 - Unsicherheit wird als `konfidenz` (hoch/mittel/niedrig) angegeben.
@@ -440,12 +431,12 @@ neu → gesichtet → interessant → angefragt → besichtigt → angebot_abgeg
 3. Plausibilität, z. B. Jahresmiete zwischen 1 % und 25 % des Kaufpreises (fängt Monats-/Jahresverwechslungen ab), Leerstand ≤ Einheiten.
 4. Hat sich die Beschreibung seit `pending` geändert, wird das Ergebnis abgelehnt.
 
-**Regelbasierter Parser:** nur eindeutige Bezeichnungen („Mieteinnahmen pro Jahr: …“), widersprüchliche Treffer ergeben keinen Wert. Da Regelwerte Vorrang vor Claude haben, gilt: lieber nichts finden als falsch finden.
+**Regelbasierter Parser:** nur eindeutige Bezeichnungen („Mieteinnahmen pro Jahr: …“), widersprüchliche Treffer ergeben keinen Wert. Da Regelwerte Vorrang vor Codex haben, gilt: lieber nichts finden als falsch finden.
 
 **Reihenfolge der Quellen:**
 1. Strukturierte Portaldaten
 2. Regelbasierter Parser
-3. Claude
+3. KI: `openai` und historische `claude`-Werte (gleicher Rang)
 4. Schätzung aus der Konfiguration
 
 Höhere Stufen werden nicht überschrieben.
@@ -456,8 +447,8 @@ Höhere Stufen werden nicht überschrieben.
 
 | Kanal | Auslöser | Inhalt | Erzeugt von |
 |---|---|---|---|
-| Telegram | Modus `run`, neuer Treffer mit Score ≥ `alert_threshold` oder deutliche Preissenkung bei einem Top-Angebot | Kurzinfo: Titel, Ort, Preis, **Kaufpreisempfehlung mit Abstand**, Bruttorendite, Score, **Link zur Detailansicht** + Portal-Link | `notify` (Vorlage, ohne Claude) |
-| E-Mail | Modus `digest`, täglich oder per „Digest jetzt senden“ | Top-N je Profil mit Pro/Contra und Kaufpreisempfehlung (Abstand, Verhandlungsbasis laut Anzeige), neue Angebote, Preissenkungen, entfernte Favoriten, unvollständige Kandidaten („Miete fehlt – nachfragen“), offene Vorgänge je Status | Text von Claude, Versand per `notify` (SMTP) |
+| Telegram | Modus `run`, neuer Treffer mit Score ≥ `alert_threshold` oder deutliche Preissenkung bei einem Top-Angebot | Kurzinfo: Titel, Ort, Preis, **Kaufpreisempfehlung mit Abstand**, Bruttorendite, Score, **Link zur Detailansicht** + Portal-Link | `notify` (Vorlage, ohne Codex) |
+| E-Mail | Modus `digest`, täglich oder per „Digest jetzt senden“ | Top-N je Profil mit Pro/Contra und Kaufpreisempfehlung (Abstand, Verhandlungsbasis laut Anzeige), neue Angebote, Preissenkungen, entfernte Favoriten, unvollständige Kandidaten („Miete fehlt – nachfragen“), offene Vorgänge je Status | Text von Codex, Versand per `notify` (SMTP) |
 
 - **Links** zeigen auf `public_base_url` (Tailscale-Name). Sie funktionieren deshalb zu Hause und unterwegs, wenn das VPN aktiv ist.
 - **Fredys eigene Benachrichtigungen** deaktivieren, sonst kommen Meldungen doppelt.
@@ -465,35 +456,43 @@ Höhere Stufen werden nicht überschrieben.
 
 ---
 
-## 9. Skill & Claude-Task
+## 9. Skill & Codex-Aufruf
 
-### 9.1 Skill-Struktur (Projekt-Skill)
+### 9.1 Skill und gemeinsame Ressourcen
 
-```
-.claude/skills/immo-analyse/
-  SKILL.md                 ← Ablauf, Regeln, Ausgabeformat Digest
-  extraction_schema/
-    mehrfamilienhaus.json
-  templates/
-    digest.md              ← Struktur des Digests
-```
-
-Die Logik liegt im Paket `immo/`, die CLI-Einstiege unter `scripts/`, die Konfiguration unter `config/`. Der Skill verweist darauf. So lassen sich die Skripte auch ohne Claude ausführen und testen.
-
-### 9.2 Aufruf
-
-```bash
-claude -p "/immo-analyse --mode=run"
+```text
+.agents/skills/immo-analyse/SKILL.md  # Einstieg für interaktive Aufträge
+resources/extraktionsregeln.md      # gemeinsame Fachregeln
+resources/extraction_schema/mehrfamilienhaus.json
+src/immo/ki_io.py                   # pending/save, Quellen und Status
+src/immo/codex_extraktion.py         # Stapel, CLI-Aufruf, Prüfung und Protokoll
+scripts/extract.py                  # dünner CLI-Einstieg
 ```
 
-```bash
-claude -p "/immo-analyse mfh-beispiel --mode=digest"
+Der Skill startet dieselbe Pipeline wie Zeitplan und Oberfläche. Die unbeaufsichtigte Extraktion
+benötigt keine Skill-Erkennung durch Codex: Python übergibt die Vorlagen, Fachregeln und Fachschemata direkt.
+
+### 9.2 Aufruf und Grenzen
+
+```powershell
+codex login
+codex login status
+powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1 -Profil mfh-kl
+powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1 -Listing 42 -Reextract
+uv run python scripts/extract.py --profile mfh-kl  # nur KI-Extraktion
 ```
 
-- **Zeitsteuerung:** Windows-Aufgabenplanung auf dem Mini-PC. Ein Wrapper-Skript `run.ps1` übernimmt Logging, Zeitlimit und eine Fehlermeldung per Telegram, wenn der Lauf scheitert. Der Job-Runner des Servers nutzt **denselben** Wrapper.
-- **Berechtigungen:** Die Projekt-Einstellungen (`.claude/settings.json`) erlauben nur die nötigen Werkzeuge: Lesen, `python scripts/*.py`, kein Schreiben außerhalb von `data/`. So kann der unbeaufsichtigte Task nichts Unerwartetes tun.
-- **Anmeldung:** Claude Code läuft mit deinem Abo und nutzt **standardmäßig die normale Anmeldung des Benutzerkontos** (siehe 11.1). Das gilt für Zeitplan und Job-Runner gleichermaßen. Ein langlebiges Token (`claude setup-token`, als `CLAUDE_CODE_OAUTH_TOKEN` in `.env`) ist nur die **Rückfallebene**: falls die normale Anmeldung im unbeaufsichtigten Betrieb abläuft oder Läufe unter einem eigenen Konto „immo“ laufen. In Phase 1 prüfen.
-- **Kontingent:** Etwa 5–30 neue Angebote pro Tag mit je einer kompakten Auswertung plus einem Digest. Das sollte gut in das Nutzungskontingent passen. Überwachung über `run_log`.
+- **Anmeldung:** gespeicherte ChatGPT-Anmeldung desselben Windows-Kontos; kein Claude-Token und kein automatischer API-Fallback. Kontingente hängen vom Konto ab.
+- **Konfiguration:** `settings.yaml` → `ki`: `cli_pfad: null` (automatische Programmsuche; alternativ expliziter Pfad), `modell: null` (CLI-Standard ohne Benutzerkonfiguration), `zeitlimit_s: 1800` (1–3600), `stapelgroesse: 20` (1–20), `max_stapel: 3` (1–3). Ein Modellname pinnt die Auswahl. Das effektive Modell wird, soweit im CLI-Log verfügbar, protokolliert.
+- **Isolation:** `codex exec --ignore-user-config --ephemeral --skip-git-repo-check --sandbox read-only` in einem temporären Arbeitsordner; Shell und Websuche deaktiviert. Keine App-Geheimnisse in der Kindprozess-Umgebung. Anzeigentexte sind ausschließlich Daten.
+- **Datenfluss:** strukturierte CLI-Ausgabe per `--output-schema`; Python prüft IDs, Hashes und gesuchte Felder, normalisiert das Transportformat und prüft anschließend Fachschema, Belegstellen und Plausibilität. Nur Python speichert in der DB.
+- **Wiederholungen:** höchstens ein Korrekturversuch pro vollständig abgelehntem Ergebnis innerhalb eines Stapels; ein danach fehlerhafter Stapel beendet den Extraktionsschritt. Die Auswahl für spätere Läufe berücksichtigt `MAX_VERSUCHE = 3`; technische Fehler bleiben offen; zuordenbare Transportfehler werden wie Fachfehler einmal korrigiert. Strukturell ungültige Antworten oder fremde/doppelte/fehlende IDs brechen den Stapel ab. Das Gesamtzeitlimit gilt über alle Stapel und Korrekturen.
+- **Teilfehler:** Nutzungslimit, CLI-Fehler, offene Restangebote und verworfene Felder ergeben Exit 2 des Extraktionsskripts. `run.ps1` bewertet anschließend weiter. Ein erfolgreich gespeichertes Angebot mit einzelnen verworfenen Feldern wird nicht automatisch erneut vorgelegt.
+- **Protokolle:** `run_log` mit Schritt `ki`, CLI-Logs unter `data/logs/codex-*.log`, normalisierte gültige Antworten unter `data/extraction/codex-*.json`, Rohantworten vor der Prüfung unter `codex-*.antwort.json`.
+- **Digest und Telegram:** noch nicht implementiert (Phase 5), daher kein Digest-Aufruf und kein automatischer Fehleralarm.
+
+Einrichtung, Testdatenbanken, Sicherung und Rückkehr zum alten Stand: [docs/SERVER.md](docs/SERVER.md), Abschnitte 6–8.
 
 ---
 
@@ -531,9 +530,9 @@ Ein einziger Python-Prozess (FastAPI + Uvicorn) stellt Oberfläche, REST-API und
 - **Kaufpreisempfehlung** prominent oben neben dem Angebotspreis: Empfehlung, Abstand in € und %, Qualität (exakt/extrahiert/geschätzt), Spanne bei Zins ±0,5 Pp. Aufklappbar der Rechenweg mit allen Eingangswerten.
 - Finanzrechnung: Kaufnebenkosten, Gesamtinvestition, Rate, Cashflow
 - Preisverlauf als Diagramm (mit Linie der Kaufpreisempfehlung), Standzeit
-- Risiken und Pro/Contra aus der Claude-Auswertung
+- Risiken und Pro/Contra aus der Codex-Auswertung
 - **Status setzen** mit optionaler Notiz, Verlauf der Statuswechsel
-- Button „Neu auswerten (Claude)“, Button **„Simulieren“** (öffnet die Objekt-Simulation mit den Werten dieses Angebots), Liste der gespeicherten Szenarien mit Kurzwerten (Kaufpreis, Miete, Cashflow, Bruttorendite)
+- Button „Neu auswerten (KI)“, Button **„Simulieren“** (öffnet die Objekt-Simulation mit den Werten dieses Angebots), Liste der gespeicherten Szenarien mit Kurzwerten (Kaufpreis, Miete, Cashflow, Bruttorendite)
 
 **4. Was-wäre-wenn: Objekt-Simulation** (Phase 8b)
 
@@ -594,7 +593,7 @@ Ein Angebot mit eigenen Annahmen durchrechnen, nur für **Jahr 1**, also dieselb
 - Backups ansehen und wiederherstellen
 
 **7. Läufe**
-- Buttons: **„Kompletten Lauf starten“** (optional je Profil), **„Digest jetzt senden“**
+- Buttons: **„Kompletten Lauf starten“** (optional je Profil), **„Digest jetzt senden“** (erst Phase 5)
 - Liste der Jobs mit Status, Dauer, Auslöser (Zeitplan/Oberfläche/MCP) und Log-Ansicht
 - Kennzahlen je Lauf aus `run_log`
 
@@ -622,24 +621,25 @@ Ein Angebot mit eigenen Annahmen durchrechnen, nur für **Jahr 1**, also dieselb
 | `set_status` | Status setzen, optional mit Notiz (z. B. „Markiere 42 als angefragt“) |
 | `add_note` | Notiz zu einem Angebot hinzufügen |
 | `start_run` | Kompletten Lauf anstoßen (optional je Profil) |
-| `reextract_listing` | Ein Angebot neu von Claude auswerten lassen |
-| `send_digest_now` | Digest außer der Reihe erzeugen und senden |
+| `reextract_listing` | Ein Angebot neu von Codex auswerten lassen |
+| `send_digest_now` (geplant, Phase 5) | Digest außer der Reihe erzeugen und senden |
 
 **Bewusst nicht** über MCP möglich sind Änderungen an der Konfiguration, das Überschreiben extrahierter Werte, das Speichern von Szenarien und das Löschen von Daten. Das geht nur über die Oberfläche.
 
-- **Zusatz-Ressource:** Beschreibung der Felder, KPIs und Status-Werte, damit Claude Fragen ohne Raten richtig beantwortet.
-- **Ausgabeformat:** kompaktes JSON mit Links zur Detailansicht, Listen sind begrenzt (Standard 20). So bleibt der Kontext von Claude klein.
+- **Zusatz-Ressource:** Beschreibung der Felder, KPIs und Status-Werte, damit Codex Fragen ohne Raten richtig beantwortet.
+- **Ausgabeformat:** kompaktes JSON mit Links zur Detailansicht, Listen sind begrenzt (Standard 20). So bleibt der Kontext von Codex klein.
 - Jede Schreibaktion wird mit der Quelle `mcp` protokolliert (`workflow_history`, `note`, `job`).
 
-**Einbindung in Claude** (Details in Phase 7 prüfen):
+**Einbindung in Codex** (auf dem Mini-PC oder im Tailnet):
 
-Claude Code:
-
-```bash
-claude mcp add --transport http immo http://immo-minipc:8710/mcp --header "Authorization: Bearer <TOKEN>"
+```powershell
+codex mcp add immo --url http://immo-minipc:8710/mcp --bearer-token-env-var MCP_TOKEN
 ```
 
-Claude Desktop: Remote-Connectors laufen über die Cloud und erreichen das Heimnetz nicht. Deshalb wird der Server als lokaler stdio-Eintrag über eine Brücke (z. B. `mcp-remote`) eingebunden, die die LAN- bzw. Tailscale-Adresse anspricht.
+`MCP_TOKEN` muss beim Start des Clients als Umgebungsvariable gesetzt sein; `.env` wird vom MCP-Client
+nicht automatisch geladen. Die Extraktionspipeline benötigt diese MCP-Verbindung nicht.
+ChatGPT Web erreicht eine lokale/Tailscale-Adresse nicht allein aufgrund dieser Konfiguration.
+Aktuelle Anleitung: [docs/SERVER.md](docs/SERVER.md), Abschnitt 4.
 
 ### 10.4 Sicherheit
 
@@ -665,8 +665,8 @@ Claude Desktop: Remote-Connectors laufen über die Cloud und erreichen das Heimn
 | Python 3.12 + `.venv` | Windows, z. B. `C:\E\ai-workspace\immo-search` | – |
 | `data\immo.db` | Windows-Dateisystem (NTFS), WAL-Modus | – |
 | `immo-server` (Uvicorn, Port 8710) | Windows-Prozess im Benutzerkonto | Aufgabenplanung „bei Anmeldung“, Neustart bei Absturz |
-| Läufe (`run.ps1` → `claude -p "/immo-analyse …"`) | Windows-Prozess im selben Benutzerkonto | Aufgabenplanung (Zeitplan) bzw. Job-Runner des Servers |
-| Claude Code | Windows, mit deiner Anmeldung | – |
+| Läufe (`run.ps1` → `scripts/extract.py` → `codex exec`) | Windows-Prozess im selben Benutzerkonto | Aufgabenplanung (Zeitplan) bzw. Job-Runner des Servers |
+| Codex CLI | Windows, mit deiner Anmeldung | – |
 | Tailscale | Windows-Client | Windows-Dienst |
 
 ```
@@ -675,19 +675,19 @@ Windows 11
 │                                                        │
 └─ Benutzerkonto                                         │
    ├─ immo-server (:8710)  ──┐                           │
-   ├─ run.ps1 → claude -p ───┼─► C:\E\ai-workspace\immo-search\data\immo.db
+   ├─ run.ps1 → extract.py ───┼─► C:\E\ai-workspace\immo-search\data\immo.db
    └─ scripts\*.py ──────────┘──────────────────────────┘
 ```
 
 **Begründung:**
 - **Alle Zugriffe auf `immo.db` erfolgen von derselben Seite** (Windows). Datei-Sperren und WAL von SQLite funktionieren dann zuverlässig. Ein Mischbetrieb über die Grenze zwischen Docker und Windows wird bewusst vermieden.
-- **Claude Code** nutzt die normale Anmeldung des Benutzerkontos. Zeitplan und Job-Runner starten `claude -p` im selben Konto, im Normalfall ohne zusätzliches Token. `run.ps1` übernimmt ein Token aus `.env` nur, wenn eines gesetzt ist (Rückfallebene, siehe 9.2).
+- **Codex CLI** nutzt die gespeicherte ChatGPT-Anmeldung desselben Windows-Kontos. Python startet `codex exec` aus Zeitplan und Job-Runner; Claude-Token werden nicht mehr gelesen.
 - **Einfache Fehlersuche:** Logs, DB und Konfiguration liegen direkt im Dateisystem.
 
-**Absicherung des unbeaufsichtigten Claude-Tasks** (läuft ohne Container-Abschottung):
-- `.claude/settings.json` mit einer engen Positivliste: Lesen im Projekt, `python scripts/*.py`, Schreiben nur in `data/`. Alles andere ist verboten (`deny`), kein Netzzugriff außer über die Skripte.
-- `run.ps1` startet Claude immer im Projektordner, mit Zeitlimit und Protokoll jedes Laufs.
-- Optional, sicherer: ein eigenes Windows-Standardkonto „immo“ ohne Admin-Rechte für Server, Läufe und eine eigene Claude-Anmeldung (dann per `claude setup-token`). Dieses Konto hat nur Zugriff auf `C:\E\ai-workspace\immo-search`.
+**Absicherung der unbeaufsichtigten KI-Extraktion:**
+- Python kontrolliert Vorlagen, Stapelgrenzen, Zeitlimit und Speicherung. Codex läuft isoliert und liefert strukturierte Daten (Abschnitt 9.2).
+- `run.ps1` hält die Sperrdatei und setzt die Bewertung nach einem KI-Teilfehler fort. Benachrichtigungen über solche Fehler fehlen bis Phase 5.
+- Anmeldung und lokale Rechte müssen für das Windows-Konto der Aufgabenplanung verfügbar sein. Der echte Test unter gesperrtem Bildschirm und die einwöchige Abnahme stehen noch aus.
 
 ### 11.2 Weitere Betriebsthemen
 
@@ -708,40 +708,44 @@ Windows 11
 
 ## 12. Projektstruktur
 
-```
+```text
 immo-search/
-  PLAN.md
-  CLAUDE.md                       ← Einstieg für neue Claude-Sitzungen: Stand, nächster Schritt, Konventionen
+  PLAN.md                         # Konzept, Status und offene Punkte
+  AGENTS.md                       # Einstieg und Arbeitskonventionen
+  CLAUDE.md                       # Verweis auf AGENTS.md für ältere Clients
   README.md
-  docs/SETUP-MINIPC.md            ← Einrichtung Phase 1
+  docs/SETUP-MINIPC.md
+  docs/SERVER.md
   pyproject.toml
-  docker/
-    fredy/docker-compose.yml
+  docker/fredy/docker-compose.yml
   config/
     settings.yaml
-    profiles/mfh-beispiel.yaml
-    .history/                     (Backups, nicht im Git)
-  src/immo/                       ← gemeinsame Logik
+    profiles/
+    .history/                     # Konfigurationsbackups, nicht im Git
+  resources/
+    extraktionsregeln.md
+    extraction_schema/mehrfamilienhaus.json
+  .agents/skills/immo-analyse/SKILL.md
+  src/immo/
     config.py  db.py  models.py  filters.py  kpis.py  scoring.py
-    finance.py  fredy_client.py  extraction.py  notify.py  jobs.py
-    sync.py  parse_attrs.py  claude_io.py (pending/save)  cli.py  backup.py  health.py
+    finance.py  fredy_client.py  extraction.py  jobs.py
+    sync.py  parse_attrs.py  ki_io.py  codex_extraktion.py  cli.py
+    backup.py  health.py  duplicates.py  queries.py  workflow.py
+    simulation.py  objekt_simulation.py  config_edit.py
     server/
-      app.py                      (FastAPI, Login, Routing)
-      web/                        (Routen + Jinja2-Templates + HTMX-Partials, static/)
-      api/                        (REST-Endpunkte für HTMX/Was-wäre-wenn)
-      mcp/                        (FastMCP-Tools & Ressourcen)
-  scripts/                        ← dünne CLI-Einstiege
-    sync.py  parse_attrs.py  pending.py  save.py  score.py  notify.py  serve.py
-    lauf.py  backup.py  health.py  zeitplan.py  aufgabe.ps1  install_tasks.ps1   (Betrieb, Phase 6)
-    dev_seed.py                   (nur Entwicklung: Testanzeigen in eine Dev-DB laden)
-  .claude/
-    settings.json
-    skills/immo-analyse/ (SKILL.md, extraction_schema/, templates/)
-  data/        (immo.db, Logs – nicht im Git)
-  tests/       (Fixtures mit Beispielanzeigen, Tests für Filter/KPIs/Score, API- und MCP-Tests)
+      app.py  web.py  auth.py  mcp_tools.py
+      templates/  static/
+  scripts/
+    sync.py  parse_attrs.py  pending.py  save.py  extract.py  score.py  serve.py
+    lauf.py  backup.py  health.py  zeitplan.py  aufgabe.ps1  install_tasks.ps1
+    dev_seed.py                    # Testanzeigen nur in eigener Dev-DB
+  data/                           # immo.db, Logs, Extraktionen, Backups; nicht im Git
+  tests/
   run.ps1
   .env.example
 ```
+
+`notify.py` und Digest-Vorlagen sind erst für Phase 5 geplant.
 
 ---
 
@@ -751,11 +755,11 @@ immo-search/
 |---|---|---|
 | **1 – Fredy aufsetzen** | Docker Desktop + Fredy auf dem Mini-PC, Jobs für IS24, Immowelt und Kleinanzeigen (MFH, Beispielregion), 2–3 Tage laufen lassen | Angebote aller 3 Portale kommen an. Die offenen Punkte 1–8 aus Abschnitt 14 sind geklärt. |
 | **2 – Kern & Sync** | Projektstruktur, Paket `immo/`, Konfiguration samt Pydantic-Prüfung, `fredy_client`, `sync` mit `fetch_filter`, eigene DB (WAL), Preisverlauf | `sync` lässt sich beliebig oft ausführen, ohne doppelte Einträge. Der Filter wirkt nachweisbar. |
-| **3 – Extraktion** | `parse_attrs`, Schema MFH, `pending`/`save`, erste SKILL.md, manueller Testlauf in Claude | Für ≥ 80 % der Testangebote mit Mietangabe wird die Ist-Miete korrekt erkannt. |
+| **3 – Extraktion** | `parse_attrs`, Schema MFH, `pending`/`save`, erste SKILL.md, manueller Testlauf in Codex | Für ≥ 80 % der Testangebote mit Mietangabe wird die Ist-Miete korrekt erkannt. |
 | **4 – Scoring & Finanzen** | KPI-Register, Normalisierung, Ausschlusskriterien, Score-Formel, Finanzrechner `finance.simulate()`, **Kaufpreisempfehlung** inkl. Sonderfälle und Zinsspanne, Tests | Ranking und Kaufpreisempfehlung stimmen mit einer Handrechnung für 5 Beispielangebote überein. Beim empfohlenen Preis ergibt die Rechnung exakt den Ziel-Cashflow. |
 | **5 – Benachrichtigung & Digest** | `notify` (Telegram, SMTP), Digest-Vorlage, Modi `run` und `digest` | Ein kompletter Lauf liefert Telegram-Meldungen und eine Digest-Mail. |
-| **6 – Automatisierung** | `run.ps1`, Windows-Aufgabenplanung, Sperre, Berechtigungen, Anmeldung (Token nur falls nötig), Backup, Überwachung | Läuft eine Woche unbeaufsichtigt ohne Eingriff. |
-| **7 – Server: Lesen** | `immo-server` mit Login, Übersicht, Liste, Detailansicht. MCP mit allen Lese-Werkzeugen, Tailscale-Zugang, Links in Telegram/Digest | Oberfläche ist zu Hause und unterwegs per VPN nutzbar. Claude Code/Desktop beantwortet Fragen wie „Top 5 MFH über 6 %?“ über MCP. |
+| **6 – Automatisierung** | `run.ps1`, Windows-Aufgabenplanung, Sperre, Berechtigungen, gespeicherte ChatGPT-Anmeldung, Backup, Überwachung | Läuft eine Woche unbeaufsichtigt ohne Eingriff. |
+| **7 – Server: Lesen** | `immo-server` mit Login, Übersicht, Liste, Detailansicht. MCP mit allen Lese-Werkzeugen, Tailscale-Zugang, Links in Telegram/Digest | Oberfläche ist zu Hause und unterwegs per VPN nutzbar. Codex CLI/Desktop beantwortet Fragen wie „Top 5 MFH über 6 %?“ über MCP. |
 | **8 – Server: Aktionen** | Status-Workflow & Notizen, Job-Runner (Lauf, Neu auswerten, Digest), Ranking-Simulation, Konfigurations-Editor mit Prüfung, Diff, Backup und Neuberechnung. MCP-Schreib-Werkzeuge | Alle Aktionen funktionieren in Oberfläche und MCP, jede Änderung ist protokolliert. Eine Konfigurationsänderung in der Oberfläche führt zu korrekt neu berechneten Scores und Kaufpreisempfehlungen. |
 | **8b – Objekt-Simulation** | Eigene Seite je Angebot und Profil: Kauf, Miete, Finanzierung und Kosten ändern, Jahr-1-Kennzahlen und Score neu rechnen. Zielwert-Rückrechnung (Cashflow, Bruttorendite, Nettoanfangsrendite → Kaufpreis, Miete, Zins, Eigenkapital) über `finance.loese()`. Szenarien in Tabelle `scenario` (speichern, laden, umbenennen, löschen, bis zu 3 vergleichen), Liste in der Detailansicht. Kein MCP | Ohne Änderungen stimmt die Simulation exakt mit der Detailansicht überein. Jede Rückrechnung ergibt eingesetzt in `simulate()` exakt den Zielwert (3 Handrechnungen + Zufallsfälle), nicht erreichbare Ziele werden gemeldet. Szenarien lassen sich speichern, vergleichen und löschen, Score und Ranking bleiben unverändert. |
 | **8c – Steuern (vereinfacht)** | Cashflow nach Steuern für Jahr 1 (5.7): AfA, Einkünfte, Steuer; KPI `cashflow_nach_steuern`; Anzeige in Detailansicht, Simulation (Gebäudeanteil und AfA-Satz änderbar) und Vergleich | Handrechnung in `tests/test_finance.py` stimmt; Score und Kaufpreisempfehlung unverändert vor Steuern |
@@ -763,16 +767,23 @@ immo-search/
 
 > Die Phasen 7–8 bauen auf der DB aus den Phasen 2–4 auf. Mit einfachen Ansichten kann Phase 7 auch parallel zu 5–6 entstehen.
 
-### 13.1 Stand der Umsetzung (20.10.2026)
+### 13.1 Stand der Umsetzung (03.11.2026)
+
+- **Formatfehler korrigiert:** Ein fehlerhaftes wert_json verwirft nicht mehr alle Ergebnisse. Gültige Angebote werden gespeichert; nur betroffene Angebote erhalten einen Korrekturversuch. Fehlerstatus, Rohantwort und konkrete Feldmeldung bleiben erhalten. Originalantwort von job-7 auf DB-Kopie nachgespielt: nur Angebot 58 korrigiert, alle vier Ergebnisse angenommen. 181 Tests grün; Details docs/SERVER.md Abschnitt 8.3.
+
+- **Korrektur Web-Lauf:** Codex wird auch ohne Desktop-PATH in lokalen Windows-Installationsordnern gesucht; `ki.cli_pfad` erlaubt eine explizite Auswahl. CLI-Ursachen werden im Job-Log angezeigt. Test ohne Codex im PATH: run.ps1-Neuauswertung und Bewertung Exit 0; 178 Tests grün. Details: docs/SERVER.md Abschnitt 8.2.
+
+- **KI-Migration:** Codex mit ChatGPT-Anmeldung ersetzt Claude Code als KI im Lauf. Python steuert Stapel, Validierung und Speicherung (`ki_io.py`, `codex_extraktion.py`, `scripts/extract.py`). Ressourcen unter `resources/`; DB v3 erlaubt `openai` neben historischen `claude`-Werten und protokolliert neue Extraktionen. Kontingente und Zeitlimit führen zum Teilfehler bei fortgesetzter Bewertung. Modell und Stapelgrenzen unter `settings.ki`. Produktiv-DB nach Backup auf v3 migriert und Server gestartet; Phase-6-Beobachtung bleibt offen. 172 Tests grün.
+
 
 | Phase | Stand | Nachweis / Anmerkung |
 |---|---|---|
-| 1 | **fast fertig** | Fredy 29.3.0 läuft auf dem Mini-PC (Windows 11, Docker Desktop). Offene Punkte 1–7 geklärt, Ergebnisse in `docs/SETUP-MINIPC.md`. Immowelt blockt Fredy (Bot-Schutz). Abschluss nach 2–3 Tagen Laufzeit. |
+| 1 | **fast fertig** | Fredy 29.3.0 läuft auf dem Mini-PC (Windows 11, Docker Desktop). Datierte Ergebnisse in `docs/SETUP-MINIPC.md`. Immowelt beim Ersttest blockiert (Bot-Schutz); erneute Portalprüfung und Fredy-Aufbewahrung ab 01.11.2026 noch offen. Keine erneute Phase-1-Abnahme bei der KI-Migration. |
 | 2 | fertig | Tests: Sync idempotent, URL-Normalisierung, `fetch_filter` je Profil, Preisverlauf, entfernt/reaktiviert, fehlerhafter Job markiert nichts als entfernt. Gegen das echte Fredy geprüft (48 Angebote); Duplikate über Portale (`duplicates.py`). |
-| 3 | fertig | Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Mit 48 echten Anzeigen: Ist-Miete bei 21 von 22 Anzeigen mit Mietangabe erkannt (95 %). |
+| 3 | fertig | Historische Abnahme vor dem Wechsel (Claude): Ist-Miete 10/10 korrekt, alle 45 erwarteten Werte stimmen. Mit 48 echten Anzeigen: Ist-Miete bei 21 von 22 Anzeigen mit Mietangabe erkannt (95 %). |
 | 4 | fertig | 5 Beispiele gegen Handrechnung (`tests/test_finance.py`). Ziel-Cashflow beim empfohlenen Preis exakt, 500 Zufallsfälle. |
 | 5 | offen | Telegram, E-Mail-Digest, `send_digest_now`, Digest-Button. Danach hängt sich der Telegram-Alarm an die Health-Prüfung. |
-| 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → Claude → Bewertung → Health) mit `--permission-mode dontAsk` und `.claude/run-settings.json`. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. Lauf von Hand am 19.10.2026: Exit 0, 3 neue Angebote ausgewertet. Aufgaben noch nicht eingerichtet (20.10.2026). |
+| 6 | umgesetzt, Abnahme offen | `run.ps1` (Sync → Regeln → `scripts/extract.py` → Codex → Bewertung → Health), `settings.ki` für Modell und Zeitlimit; keine Claude-Berechtigungsdatei mehr. `scripts/install_tasks.ps1` legt drei Aufgaben an: Läufe nach `schedule.run` (über `scripts/lauf.py` als Job „zeitplan“), tägliches Backup, Server bei Anmeldung mit Neustart nach Absturz (`scripts/aufgabe.ps1`). Backup (`backup.py`): `immo.db` per SQLite-Backup-API, `config/`, Fredys DB als geprüfter Schnappschuss, Aufbewahrungsfrist. Health (`health.py`): Portale, Sync, Backup, `/health` → `run_log`. Tests `test_backup.py`, `test_health.py`, `test_jobs_direkt.py`; Backup und Health am echten Bestand geprüft (Kopie). Aufgaben richtet der Nutzer ein (docs/SERVER.md, Abschnitt 7), danach eine Woche beobachten. Lauf von Hand am 19.10.2026: Exit 0, 3 neue Angebote ausgewertet. Letzter Aufgabencheck am 20.10.2026: noch nicht eingerichtet; bei der KI-Migration keine Aufgaben geändert. |
 | 7 | fertig (ohne Telegram/Digest-Links) | `immo-server` mit Login, Übersicht, Liste, Detail; MCP mit allen Lese-Werkzeugen. Tests `tests/test_server.py`, im Browser und per MCP am echten Bestand geprüft. Tailscale-Zugang: Anleitung `docs/SERVER.md`, noch nicht eingerichtet. |
 | 8 | fertig (ohne Digest) | Status-Workflow, Notizen, Job-Runner (Lauf, Neu auswerten, Bewerten), Ranking-Simulation mit Übernahme ins Profil, Konfigurations-Editor (Prüfung, Diff, Backup, Protokoll, Neuberechnung, Profile kopieren/aktivieren), MCP-Schreib-Werkzeuge. |
 | 8b | fertig (19.10.2026, Umfang verkleinert) | `finance.loese()` (geschlossene Formeln), `objekt_simulation.py` (Basis wie `scoring.bewerte`, Formular, Szenarien), Seiten `/angebot/<id>/simulation` und `/angebot/<id>/vergleich`, Szenarien in der Detailansicht. Tests `tests/test_objekt_simulation.py`: 8 Handrechnungen, 1 500 Zufallsfälle (Zielwert exakt getroffen), ohne Änderung = gespeicherte Bewertung, Szenarien ändern keine Bewertung. Im Browser mit einer Kopie des echten Bestands geprüft (Angebot 24: Break-even-Zins 4,01 %, Kaufpreis für Cashflow 0 = Empfehlung). |
@@ -798,12 +809,12 @@ Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Ph
 5. **Duplikate über Portale:** Liefert Fredy eine Duplikat-Kennung? In der Tabelle `listings` ist keine zu sehen. Bis das geklärt ist, bildet jedes Angebot seine eigene `duplicate_group`. Sonst eine eigene Erkennung (Adresse/Koordinaten + Fläche + Preis) in `sync`. **Geklärt 18.10.2026:** Fredy liefert keine Kennung; umgesetzt in `duplicates.py` (gleiche PLZ, Titel ≥ 90 % ähnlich, Preis ± 5 %, Fläche ± 2 %, verschiedene Portale).
 6. **Objektart in den Daten:** Kann `sync` die Objektart und den Job je Angebot sicher zuordnen? Davon hängt die Zuordnung zum Profil ab.
 7. **Ortsdaten:** Sind PLZ und Koordinaten in Fredy-Daten verlässlich vorhanden? Sonst werden sie per Geocoding (OSM/Nominatim, sparsam und zwischengespeichert) ergänzt.
-8. **Claude ohne Oberfläche:** Hält die normale Anmeldung im unbeaufsichtigten Betrieb (Aufgabenplanung bei gesperrtem Bildschirm)? Falls nein: `claude setup-token` als Rückfallebene. Außerdem: Verhalten bei erreichtem Nutzungskontingent (der Lauf soll sauber abbrechen und beim nächsten Mal weitermachen).
+8. **Codex ohne Oberfläche:** Anmeldung im gleichen Windows-Konto und echte Neuauswertung am 03.11.2026 geprüft. Noch offen: Aufgabenplanung bei gesperrtem Bildschirm und eine Woche unbeaufsichtigter Betrieb. Bei Nutzungslimit oder CLI-Fehler bleibt die Bewertung aktiv; tatsächliches Kontingentverhalten im Dauerbetrieb beobachten.
 
 **In Phase 7 prüfen:**
 
-9. **MCP-Anbindung von Claude Desktop** an einen MCP-Server im LAN (stdio-Brücke wie `mcp-remote` und Anmeldung per Token). Claude Code direkt über HTTP.
-10. **Job-Runner startet `claude -p`** aus dem Serverprozess: Anmeldung, Arbeitsverzeichnis, Zeitlimit, Abbruch.
+9. **MCP-Anbindung:** Codex CLI über HTTP und `MCP_TOKEN`-Umgebungsvariable einrichten; Zugriff vom tatsächlichen Client über LAN/Tailscale noch abnehmen. ChatGPT Web braucht eine separat geprüfte Erreichbarkeit.
+10. **Job-Runner:** startet `run.ps1` → Python → `codex exec`. Neuauswertung mit Bewertung auf Test-DB und Weitergabe von DB/Konfiguration geprüft (03.11.2026); unbeaufsichtigte Abnahme bleibt offen.
 
 ---
 
@@ -814,12 +825,12 @@ Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Ph
 | IS24-App-Schnittstelle (inoffiziell) fällt weg | Überwachung je Portal, kurzfristig E-Mail-Suchagent als Reserve, auf Fredy-Updates warten |
 | Fredy wird nur von einer Person gepflegt | Festes Image-Tag, Zugriff auf Fredy in `fredy_client` kapseln, damit sich die Quelle austauschen lässt |
 | Fredy-Update ändert API oder Schema | Fester Tag, Vertragstests in `tests/`, Update erst nach Test |
-| Claude extrahiert falsch | Belegstelle Pflicht, Schema-Prüfung, Quelle und Konfidenz in Detailansicht und Digest sichtbar, „Neu auswerten“ per Klick |
+| Codex extrahiert falsch | Belegstelle Pflicht, Schema-Prüfung, Quelle und Konfidenz in Detailansicht und Digest sichtbar, „Neu auswerten“ per Klick |
 | Mietangaben fehlen oft | Als „unvollständig“ markieren statt verwerfen. Optional Schätzung, deutlich gekennzeichnet. |
 | SQLite-Sperrkonflikte (Server liest, Lauf schreibt) | WAL-Modus, `busy_timeout`, kurze Transaktionen, nur ein schreibender Lauf gleichzeitig, Server läuft auf demselben Dateisystem (nicht in Docker) |
 | Fehlerhafte Konfiguration über die Oberfläche | Pydantic-Prüfung, Diff-Vorschau, Backup vor jedem Speichern, Wiederherstellung in der Oberfläche |
 | Unbefugter Zugriff auf Oberfläche/MCP | Kein Internetzugang (nur LAN + Tailscale), Login + CSRF, eigenes MCP-Token, Schreib-Werkzeuge einzeln abschaltbar |
-| Claude stößt über MCP zu viele Läufe an | Sperre + Warteschlange, Mindestabstand zwischen manuellen Läufen (konfigurierbar), alles in `job` protokolliert |
+| Codex stößt über MCP zu viele Läufe an | Sperre + Warteschlange, identische offene Jobs werden zusammengefasst, alles in `job` protokolliert; kein konfigurierbarer Mindestabstand umgesetzt |
 | Mini-PC aus oder Update-Neustart | Autostart von Docker, Server und Tailscale, Ruhezustand aus, Neustart-Fenster für Windows Update festlegen, Alarm bei fehlendem Lauf |
 | Kontingent erschöpft | Nur neue Angebote auswerten, kompakte Eingabe, Lauf bricht sauber ab und setzt beim nächsten Mal fort |
 
@@ -830,4 +841,16 @@ Commits: `f62f8b2` (Phasen 2+3), `8a5989d` (Phase 4), `4bc6e12` (Vorbereitung Ph
 - Nur private, nicht-kommerzielle Nutzung, keine Weitergabe oder Veröffentlichung der Daten
 - Moderate Abrufhäufigkeit, keine Umgehung von Schutzmechanismen
 - Fredys Lizenz (Apache 2.0 + Commons Clause) erlaubt die private Nutzung, verbietet aber den Verkauf
-- Telefonnummern und Namen von Anbietern nur lokal speichern. Die Oberfläche ist nicht öffentlich, und der Digest geht nur an dich.
+- Die eigene Datenbank bleibt lokal. Die KI-Extraktion übermittelt Titel, Beschreibungsauszüge und ausgewählte Objektdaten an OpenAI; eine automatische Entfernung von Namen oder Telefonnummern aus diesen Texten ist nicht implementiert. Die Oberfläche ist nicht öffentlich; der geplante Digest ist nur für den Nutzer vorgesehen.
+
+## 17. Verifizierte KI-Umstellung (03.11.2026)
+
+Dieser Abschnitt ersetzt die Codex-Code-spezifischen Betriebsangaben und Pfade im ursprünglichen Entwurf.
+Abnahme 03.11.2026: 172 Tests grün; vier echte Codex-Testauswertungen ohne Ablehnung sowie run.ps1-Neuauswertung
+mit anschließender Bewertung und Exit 0. Produktiv-DB vor Migration gesichert, auf v3 migriert (368 Werte erhalten), Server gestartet.
+`run.ps1` startet `scripts/extract.py`; die Fachlogik liegt in `src/immo/codex_extraktion.py` und `ki_io.py`.
+Codex wird mit gespeicherter ChatGPT-Anmeldung, isoliert und mit strukturierter JSON-Ausgabe aufgerufen.
+Die Fachschemata bleiben Version 1; nur die DB steigt auf Version 3. Der Wechsel selbst löst keine erneute Auswertung aus.
+Fachregeln und Schema liegen unter `resources/`; `.claude/run-settings.json` wird nicht mehr verwendet.
+MCP-Clients können Codex nutzen; die Server-Werkzeuge bleiben kompatibel. Digest bleibt Phase 5.
+Einzelheiten zu Konfiguration, Logs, Migration und Rückkehr zum alten Stand: docs/SERVER.md, Abschnitt 8.

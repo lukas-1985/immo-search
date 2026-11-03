@@ -8,7 +8,7 @@
     <input type="hidden" name="typ" value="lauf">
     <select name="profil"><option value="">alle aktiven Profile</option>{% for pr in profile if pr.active %}<option value="{{ pr.id }}">{{ pr.name }}</option>{% endfor %}</select>
     <button>Kompletten Lauf starten</button>
-    <span class="klein">Sync → Regeln → Claude-Extraktion → Bewertung (run.ps1)</span>
+    <span class="klein">Sync → Regeln → KI-Extraktion → Bewertung (run.ps1)</span>
   </form>
   <form method="post" action="/laeufe/starten" class="zeile" style="margin-top:8px">
     <input type="hidden" name="csrf" value="{{ csrf }}">

@@ -1,4 +1,4 @@
-"""CLI: Noch nicht ausgewertete Angebote kompakt für Claude ausgeben (JSON auf stdout).
+"""CLI: Noch nicht ausgewertete Angebote kompakt für KI ausgeben (JSON auf stdout).
 
     python scripts/pending.py [--profile mfh-beispiel] [--limit 20]
     python scripts/pending.py --listing 42 --reextract
@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from immo.claude_io import pending
+from immo.ki_io import pending
 from immo.cli import open_context, parser, print_json, run
 
 

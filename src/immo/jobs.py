@@ -1,8 +1,8 @@
 """Job-Runner: festgelegte Läufe nacheinander ausführen (ein Lauf gleichzeitig).
 
 Erlaubt sind nur diese Job-Typen, Parameter werden geprüft (keine freien Befehle):
-- `lauf`           run.ps1 [-Profil <id>]           Sync → Regeln → Claude-Extraktion → Bewertung
-- `neu_auswerten`  run.ps1 -Listing <id> -Reextract  Claude wertet ein Angebot neu aus → Bewertung
+- `lauf`           run.ps1 [-Profil <id>]           Sync → Regeln → KI-Extraktion → Bewertung
+- `neu_auswerten`  run.ps1 -Listing <id> -Reextract  KI wertet ein Angebot neu aus → Bewertung
 - `bewerten`       scripts/score.py                  nur neu bewerten (z. B. nach Konfigurationsänderung)
 
 Der Runner läuft als Thread im Server. `run.ps1` hält zusätzlich eine Sperrdatei, damit sich
@@ -129,11 +129,13 @@ def direkt_ausfuehren(config: Config, db_path: Path, typ: str, parameter: dict[s
     return job_id, ok
 
 
-def befehl(config: Config, typ: str, parameter: dict[str, Any]) -> list[str]:
+def befehl(config: Config, typ: str, parameter: dict[str, Any], db_path: Path | None = None) -> list[str]:
     root = projekt_dir(config)
     if typ == "bewerten":
-        return [shutil.which("uv") or "uv", "run", "python", str(root / "scripts" / "score.py")]
+        return [shutil.which("uv") or "uv", "run", "python", str(root / "scripts" / "score.py"),
+                "--config-dir", str(config.config_dir), "--db", str(db_path or config.db_path())]
     ps = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(root / "run.ps1")]
+    ps += ["-ConfigDir", str(config.config_dir), "-Db", str(db_path or config.db_path())]
     if typ == "lauf":
         return ps + (["-Profil", parameter["profil"]] if parameter.get("profil") else [])
     if typ == "neu_auswerten":
@@ -216,7 +218,7 @@ class Runner:
             conn.close()
 
     def _prozess(self, typ: str, parameter: dict[str, Any], log_pfad: Path) -> bool:
-        cmd = befehl(self.config, typ, parameter)
+        cmd = befehl(self.config, typ, parameter, self.db_path)
         with log_pfad.open("w", encoding="utf-8") as f:
             f.write(f"$ {' '.join(cmd)}\n\n")
             f.flush()

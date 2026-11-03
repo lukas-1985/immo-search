@@ -1,4 +1,4 @@
-"""CLI: Claude-Extraktion prüfen und speichern.
+"""CLI: KI-Extraktion prüfen und speichern.
 
     python scripts/save.py data/extraction/<datei>.json
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from immo.claude_io import save
+from immo.ki_io import save
 from immo.cli import open_context, parser, print_json, run
 from immo.db import now_iso
 

@@ -1,10 +1,10 @@
 """Regelbasierte Extraktion (Quelle `regel`): nur eindeutige Muster, vor allem Attributlisten.
 
-Grundsatz: lieber nichts finden als falsch finden. Regelwerte haben Vorrang vor Claude,
-ein Fehler hier würde also eine bessere Claude-Auswertung verdrängen. Deshalb:
+Grundsatz: lieber nichts finden als falsch finden. Regelwerte haben Vorrang vor KI,
+ein Fehler hier würde also eine bessere KI-Auswertung verdrängen. Deshalb:
 - Werte nur aus klaren Bezeichnungen („Mieteinnahmen pro Jahr: 48.000 €“)
 - mehrere verschiedene Treffer für dasselbe Feld → kein Wert
-- Fließtext („erzielt derzeit monatlich rund …“) bleibt Claude überlassen
+- Fließtext („erzielt derzeit monatlich rund …“) bleibt KI überlassen
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Bewertung: Ausschlusskriterien (Stufe 3) → KPIs → Score → Ranking. Deterministisch, ohne Claude.
+"""Bewertung: Ausschlusskriterien (Stufe 3) → KPIs → Score → Ranking. Deterministisch, ohne KI.
 
 Gleiche Eingabe ergibt gleichen Score. Jede Bewertung speichert ihren Rechenweg (`kpis_json`)
 und einen Hash der verwendeten Konfiguration (`config_hash`).
@@ -22,7 +22,7 @@ from .kpis import REGISTER, Kontext, KpiWert, as_json, berechne_alle, normalisie
 
 SCORING_VERSION = 2  # erhöhen, wenn sich die Rechenlogik ändert → config_hash ändert sich mit
 LISTING_FELDER = ("preis", "flaeche", "zimmer", "baujahr", "plz", "ort", "provider", "energieklasse")
-QUELLE_QUALITAET: dict[str, Qualitaet] = {"portal": "exakt", "regel": "extrahiert", "claude": "extrahiert", "schätzung": "geschätzt"}
+QUELLE_QUALITAET: dict[str, Qualitaet] = {"portal": "exakt", "regel": "extrahiert", "claude": "extrahiert", "openai": "extrahiert", "schätzung": "geschätzt"}
 
 
 # --------------------------------------------------------------------------- Formel (sicherer Ausdrucks-Evaluator)
@@ -279,7 +279,7 @@ class ScoreStats:
 
 
 def run_score(conn: sqlite3.Connection, config: Config, only_profile: str | None = None) -> list[ScoreStats]:
-    """Alle Angebote der Profile neu bewerten (Sekunden, ohne Claude)."""
+    """Alle Angebote der Profile neu bewerten (Sekunden, ohne KI)."""
     profiles = config.active_profiles(only_profile)
     for p in profiles:
         pruefe_profil(p)

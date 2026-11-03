@@ -87,7 +87,7 @@ docker logs fredy --tail 100
 
 Fredy protokolliert auch Filter, die es aus der URL nicht übernehmen kann. Die Suche läuft dann breiter. Das ist unkritisch, weil `fetch_filter` in `immo-search` genauer filtert.
 
-**Profil anpassen:** In `config/profiles/mfh-beispiel.yaml` die Platzhalter ersetzen: PLZ/Orte, Preis, Bundesland, Eigenkapital. Danach prüfen:
+**Profil anpassen:** `config/profiles/mfh-beispiel.yaml` ist die Vorlage; das eingerichtete aktive Profil ist `config/profiles/mfh-kl.yaml`. Für eine neue Suche die Vorlage kopieren und Platzhalter ersetzen: PLZ/Orte, Preis, Bundesland, Eigenkapital. Danach prüfen:
 
 ```powershell
 uv sync
@@ -133,11 +133,11 @@ uv run python scripts/sync.py
 | 6 Zuordnung Objektart/Job | ein Job je Portal, Profil über `job_prefix: "MFH KL"` | 18.10.2026 |
 | 7 PLZ/Koordinaten | PLZ 100 %. Koordinaten: IS24 23 %, Kleinanzeigen 100 %. Baujahr 0 %. | 18.10.2026 |
 | Immowelt | Erster Lauf: Bot erkannt (HTTP 403), 0 Angebote. Beobachten. | 18.10.2026 |
-| 8 Claude ohne Oberfläche (Phase 6) | | |
+| 8 Codex ohne Oberfläche (Phase 6) | Anmeldung und Test-Neuauswertung über run.ps1 erfolgreich; Aufgabenplanung bei gesperrtem Bildschirm und Abnahmewoche weiterhin offen. Details: SERVER.md Abschnitte 7–8. | 03.11.2026 |
 
 Phase 1 ist fertig, wenn alle drei Portale Angebote liefern und die Punkte 1–7 hier eingetragen sind. Punkt 8 klärt sich mit `run.ps1` in Phase 6.
 
-## 9. Eingerichteter Stand (18.10.2026)
+## 9. Eingerichteter Fredy-Stand (18.10.2026; historische Diagnose)
 
 So ist Fredy für das Profil `mfh-kl` eingerichtet. Alles wurde über Fredys API gesetzt, mit den Zugangsdaten aus `.env`.
 
@@ -161,4 +161,4 @@ So ist Fredy für das Profil `mfh-kl` eingerichtet. Alles wurde über Fredys API
 | Detailseiten je Portal laden | `POST /api/user/settings/provider-details` mit `{provider_details: [...]}` |
 | Details eines Angebots nachladen | `POST /api/listings/<id>/details` |
 
-**Offener Punkt – Aufbewahrung:** Fredy löscht Angebote nach `listingRetentionDays` (14 Tage). Noch ungeprüft: Liefert Fredy ein solches Angebot dann nicht mehr, und markiert unser Sync es als „entfernt“, obwohl es noch online ist? Prüfen, sobald die ersten Angebote 14 Tage alt sind (ab 01.11.2026). Gegebenenfalls `listingRetentionDays` erhöhen oder in `sync` das Entfernen anders erkennen.
+**Offener Punkt – Aufbewahrung (seit 01.11.2026 zur Prüfung fällig; noch nicht geprüft):** Fredy löscht Angebote nach `listingRetentionDays` (14 Tage). Noch ungeprüft: Liefert Fredy ein solches Angebot dann nicht mehr, und markiert unser Sync es als „entfernt“, obwohl es noch online ist? Prüfen, sobald die ersten Angebote 14 Tage alt sind (ab 01.11.2026). Gegebenenfalls `listingRetentionDays` erhöhen oder in `sync` das Entfernen anders erkennen.
